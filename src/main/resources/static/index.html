@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HelpNote IA - Suas Notas Inteligentes</title>
+    <!-- Modern Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Main Style -->
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="brand">
+                <div class="logo-icon"><i class="fa-solid fa-microphone-lines"></i></div>
+                <h1>HelpNote <span>IA</span></h1>
+            </div>
+            
+            <nav class="nav-menu">
+                <a href="#" class="nav-item active">
+                    <i class="fa-solid fa-house"></i>
+                    <span>Início</span>
+                </a>
+                <a href="#" class="nav-item">
+                    <i class="fa-solid fa-folder-open"></i>
+                    <span>Minhas Notas</span>
+                </a>
+                <a href="#" class="nav-item">
+                    <i class="fa-solid fa-robot"></i>
+                    <span>Insights IA</span>
+                </a>
+                <a href="#" class="nav-item">
+                    <i class="fa-solid fa-gear"></i>
+                    <span>Configurações</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="user-profile">
+                    <div class="avatar"><i class="fa-solid fa-user"></i></div>
+                    <div class="user-info">
+                        <span class="name">João Silva</span>
+                        <span class="plan">Premium</span>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <header class="top-header">
+                <div class="search-bar">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <input type="text" placeholder="Busque em suas notas ou transcrições...">
+                </div>
+                <div class="header-actions">
+                    <button class="icon-btn tooltip" data-tooltip="Notificações">
+                        <i class="fa-regular fa-bell"></i>
+                        <span class="badge">3</span>
+                    </button>
+                    <button class="primary-btn new-note-btn">
+                        <i class="fa-solid fa-plus"></i>
+                        <span>Nova Gravação</span>
+                    </button>
+                </div>
+            </header>
+
+            <div class="content-wrapper">
+                <!-- Welcome Section -->
+                <section class="welcome-section">
+                    <div class="welcome-text">
+                        <h2>Bom dia, João! 👋</h2>
+                        <p>Pronto para capturar e organizar suas ideias hoje?</p>
+                    </div>
+                    
+                    <div class="stats-cards">
+                        <div class="stat-card">
+                            <div class="stat-icon audio"><i class="fa-solid fa-file-audio"></i></div>
+                            <div class="stat-info">
+                                <h3>Total de Gravações</h3>
+                                <p class="stat-value">24</p>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon ai"><i class="fa-solid fa-wand-magic-sparkles"></i></div>
+                            <div class="stat-info">
+                                <h3>Resumos Gerados</h3>
+                                <p class="stat-value">18</p>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon time"><i class="fa-solid fa-clock"></i></div>
+                            <div class="stat-info">
+                                <h3>Tempo Poupado</h3>
+                                <p class="stat-value">5h 20m</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <div class="split-layout">
+                    <!-- Left Column: Upload & Recent Notes -->
+                    <div class="left-col">
+                        <!-- Upload Area -->
+                        <section class="upload-section">
+                            <div class="section-header">
+                                <h3>Nova Transcrição</h3>
+                            </div>
+                            <div class="upload-container" id="uploadDropzone">
+                                <div class="upload-content">
+                                    <div class="upload-icon pulse-animation">
+                                        <i class="fa-solid fa-cloud-arrow-up"></i>
+                                    </div>
+                                    <h3>Arraste seu áudio aqui</h3>
+                                    <p>ou clique para procurar no seu computador</p>
+                                    <span class="formats">Suporta MP3, WAV, M4A (Max 50MB)</span>
+                                </div>
+                                <input type="file" id="fileInput" accept="audio/*" hidden>
+                            </div>
+                            <!-- Mock Upload Progress -->
+                            <div class="upload-progress hidden" id="uploadProgress">
+                                <div class="progress-info">
+                                    <span class="filename">reuniao_marketing.mp3</span>
+                                    <span class="percentage">45%</span>
+                                </div>
+                                <div class="progress-bar-bg">
+                                    <div class="progress-bar-fill" style="width: 45%;"></div>
+                                </div>
+                            </div>
+                        </section>
+
+                        <!-- Recent Files -->
+                        <section class="recent-notes">
+                            <div class="section-header">
+                                <h3>Gravações Recentes</h3>
+                                <a href="#" class="view-all">Ver todas</a>
+                            </div>
+                            
+                            <div class="notes-list">
+                                <!-- Note 1 -->
+                                <div class="note-card">
+                                    <div class="note-icon"><i class="fa-solid fa-microphone"></i></div>
+                                    <div class="note-details">
+                                        <h4>Reunião de Planejamento Q3</h4>
+                                        <span class="note-meta">Hoje às 10:30 • 45 min</span>
+                                    </div>
+                                    <div class="note-status success">
+                                        Transcrito
+                                    </div>
+                                    <button class="action-btn"><i class="fa-solid fa-ellipsis-vertical"></i></button>
+                                </div>
+
+                                <!-- Note 2 -->
+                                <div class="note-card">
+                                    <div class="note-icon"><i class="fa-solid fa-microphone"></i></div>
+                                    <div class="note-details">
+                                        <h4>Ideias para o novo Produto</h4>
+                                        <span class="note-meta">Ontem às 15:45 • 12 min</span>
+                                    </div>
+                                    <div class="note-status success">
+                                        Transcrito
+                                    </div>
+                                    <button class="action-btn"><i class="fa-solid fa-ellipsis-vertical"></i></button>
+                                </div>
+
+                                <!-- Note 3 -->
+                                <div class="note-card">
+                                    <div class="note-icon processing"><i class="fa-solid fa-spinner fa-spin"></i></div>
+                                    <div class="note-details">
+                                        <h4>Entrevista com Cliente</h4>
+                                        <span class="note-meta">Ontem às 11:00 • 30 min</span>
+                                    </div>
+                                    <div class="note-status pending">
+                                        Em processamento
+                                    </div>
+                                    <button class="action-btn"><i class="fa-solid fa-ellipsis-vertical"></i></button>
+                                </div>
+                            </div>
+                        </section>
+                    </div>
+
+                    <!-- Right Column: AI Assistant & Preview -->
+                    <div class="right-col">
+                        <section class="ai-assistant-panel">
+                            <div class="panel-header">
+                                <div class="ai-title">
+                                    <i class="fa-solid fa-sparkles spark-icon"></i>
+                                    <h3>Assistente IA</h3>
+                                </div>
+                                <span class="ai-status">Pronto</span>
+                            </div>
+                            
+                            <div class="ai-content">
+                                <div class="empty-state">
+                                    <div class="ai-bot-icon">
+                                        <i class="fa-solid fa-robot"></i>
+                                    </div>
+                                    <h4>Selecione uma gravação</h4>
+                                    <p>Escolha um arquivo de áudio transcrito para que eu possa gerar resumos, extrair tarefas (To-dos) ou responder perguntas sobre o conteúdo.</p>
+                                </div>
+                                
+                                <!-- Mock Active State (Hidden by default) -->
+                                <div class="active-ai-state hidden">
+                                    <div class="insight-box summary">
+                                        <h5><i class="fa-solid fa-align-left"></i> Resumo Rápido</h5>
+                                        <p>A equipe discutiu as metas do Q3, focando na expansão do mercado europeu e lançamento da feature de pagamentos até novembro.</p>
+                                    </div>
+                                    
+                                    <div class="insight-box todos">
+                                        <h5><i class="fa-solid fa-list-check"></i> Próximos Passos (To-dos)</h5>
+                                        <ul class="todo-list">
+                                            <li><input type="checkbox"> Enviar orçamento de marketing para aprovação</li>
+                                            <li><input type="checkbox"> Marcar reunião técnica sobre o gateway</li>
+                                            <li><input type="checkbox"> Revisar os textos traduzidos do app</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="ai-prompt">
+                                <input type="text" placeholder="Pergunte algo sobre a gravação atual..." disabled>
+                                <button class="send-prompt-btn" disabled><i class="fa-solid fa-paper-plane"></i></button>
+                            </div>
+                        </section>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="js/script.js"></script>
+</body>
+</html>

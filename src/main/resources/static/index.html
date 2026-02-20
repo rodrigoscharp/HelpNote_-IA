@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -13,6 +14,7 @@
     <!-- Main Style -->
     <link rel="stylesheet" href="css/style.css">
 </head>
+
 <body>
     <div class="app-container">
         <!-- Sidebar Navigation -->
@@ -21,7 +23,7 @@
                 <div class="logo-icon"><i class="fa-solid fa-microphone-lines"></i></div>
                 <h1>HelpNote <span>IA</span></h1>
             </div>
-            
+
             <nav class="nav-menu">
                 <a href="#" class="nav-item active">
                     <i class="fa-solid fa-house"></i>
@@ -45,9 +47,12 @@
                 <div class="user-profile">
                     <div class="avatar"><i class="fa-solid fa-user"></i></div>
                     <div class="user-info">
-                        <span class="name">João Silva</span>
+                        <span class="name" id="userProfileName">Carregando...</span>
                         <span class="plan">Premium</span>
                     </div>
+                    <button id="logoutBtn" class="logout-btn tooltip" data-tooltip="Sair">
+                        <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                    </button>
                 </div>
             </div>
         </aside>
@@ -78,7 +83,7 @@
                         <h2>Bom dia, João! 👋</h2>
                         <p>Pronto para capturar e organizar suas ideias hoje?</p>
                     </div>
-                    
+
                     <div class="stats-cards">
                         <div class="stat-card">
                             <div class="stat-icon audio"><i class="fa-solid fa-file-audio"></i></div>
@@ -141,7 +146,7 @@
                                 <h3>Gravações Recentes</h3>
                                 <a href="#" class="view-all">Ver todas</a>
                             </div>
-                            
+
                             <div class="notes-list">
                                 <!-- Note 1 -->
                                 <div class="note-card">
@@ -195,37 +200,41 @@
                                 </div>
                                 <span class="ai-status">Pronto</span>
                             </div>
-                            
+
                             <div class="ai-content">
                                 <div class="empty-state">
                                     <div class="ai-bot-icon">
                                         <i class="fa-solid fa-robot"></i>
                                     </div>
                                     <h4>Selecione uma gravação</h4>
-                                    <p>Escolha um arquivo de áudio transcrito para que eu possa gerar resumos, extrair tarefas (To-dos) ou responder perguntas sobre o conteúdo.</p>
+                                    <p>Escolha um arquivo de áudio transcrito para que eu possa gerar resumos, extrair
+                                        tarefas (To-dos) ou responder perguntas sobre o conteúdo.</p>
                                 </div>
-                                
+
                                 <!-- Mock Active State (Hidden by default) -->
                                 <div class="active-ai-state hidden">
                                     <div class="insight-box summary">
                                         <h5><i class="fa-solid fa-align-left"></i> Resumo Rápido</h5>
-                                        <p>A equipe discutiu as metas do Q3, focando na expansão do mercado europeu e lançamento da feature de pagamentos até novembro.</p>
+                                        <p>A equipe discutiu as metas do Q3, focando na expansão do mercado europeu e
+                                            lançamento da feature de pagamentos até novembro.</p>
                                     </div>
-                                    
+
                                     <div class="insight-box todos">
                                         <h5><i class="fa-solid fa-list-check"></i> Próximos Passos (To-dos)</h5>
                                         <ul class="todo-list">
-                                            <li><input type="checkbox"> Enviar orçamento de marketing para aprovação</li>
+                                            <li><input type="checkbox"> Enviar orçamento de marketing para aprovação
+                                            </li>
                                             <li><input type="checkbox"> Marcar reunião técnica sobre o gateway</li>
                                             <li><input type="checkbox"> Revisar os textos traduzidos do app</li>
                                         </ul>
                                     </div>
                                 </div>
                             </div>
-                            
+
                             <div class="ai-prompt">
                                 <input type="text" placeholder="Pergunte algo sobre a gravação atual..." disabled>
-                                <button class="send-prompt-btn" disabled><i class="fa-solid fa-paper-plane"></i></button>
+                                <button class="send-prompt-btn" disabled><i
+                                        class="fa-solid fa-paper-plane"></i></button>
                             </div>
                         </section>
                     </div>
@@ -236,4 +245,5 @@
 
     <script src="js/script.js"></script>
 </body>
+
 </html>

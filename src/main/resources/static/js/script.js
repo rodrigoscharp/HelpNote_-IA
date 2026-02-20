@@ -3,6 +3,38 @@
  */
 
 document.addEventListener('DOMContentLoaded', () => {
+    // Setup application state: Authentication
+    const userProfileName = document.getElementById('userProfileName');
+
+    // Check if user is logged in
+    fetch('/api/auth/me')
+        .then(response => {
+            if (!response.ok) {
+                // If not authenticated, force redirect to login
+                window.location.href = 'login.html';
+                throw new Error("Não autenticado");
+            }
+            return response.json();
+        })
+        .then(user => {
+            if (userProfileName) {
+                userProfileName.textContent = user.userName;
+            }
+        })
+        .catch(err => console.log("Auth session exception:", err));
+
+    // Handle Logout
+    const logoutBtn = document.getElementById('logoutBtn');
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', async () => {
+            try {
+                await fetch('/api/auth/logout', { method: 'POST' });
+                window.location.href = 'login.html';
+            } catch (err) {
+                console.error("Erro ao fazer logout", err);
+            }
+        });
+    }
 
     // 1. Setup File Upload Drag & Drop Styling
     const dropzone = document.getElementById('uploadDropzone');

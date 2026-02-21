@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HelpNote IA - Bloco de Notas Inteligente</title>
+    <!-- Modern Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Main Style -->
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="brand">
+                <div class="logo-icon"><i class="fa-solid fa-microphone-lines"></i></div>
+                <a href="index.html" style="text-decoration: none; color: inherit;">
+                    <h1>HelpNote <span>IA</span></h1>
+                </a>
+            </div>
+
+            <nav class="nav-menu">
+                <a href="index.html" class="nav-item">
+                    <i class="fa-solid fa-house"></i>
+                    <span>Início</span>
+                </a>
+                <a href="#" class="nav-item active">
+                    <i class="fa-solid fa-pen-to-square"></i>
+                    <span>Notas Escritas</span>
+                </a>
+                <a href="#" class="nav-item">
+                    <i class="fa-solid fa-folder-open"></i>
+                    <span>Minhas Notas</span>
+                </a>
+                <a href="#" class="nav-item">
+                    <i class="fa-solid fa-robot"></i>
+                    <span>Insights IA</span>
+                </a>
+                <a href="#" class="nav-item">
+                    <i class="fa-solid fa-gear"></i>
+                    <span>Configurações</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="user-profile">
+                    <div class="avatar"><i class="fa-solid fa-user"></i></div>
+                    <div class="user-info">
+                        <span class="name" id="userProfileName">Carregando...</span>
+                        <span class="plan">Premium</span>
+                    </div>
+                    <button id="logoutBtn" class="logout-btn tooltip" data-tooltip="Sair">
+                        <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                    </button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <header class="top-header">
+                <div class="page-title">
+                    <h2>Nova Anotação Inteligente</h2>
+                </div>
+                <div class="header-actions">
+                    <button class="primary-btn" id="saveNoteBtn">
+                        <i class="fa-solid fa-floppy-disk"></i>
+                        <span>Salvar Anotação</span>
+                    </button>
+                </div>
+            </header>
+
+            <div class="content-wrapper notepad-layout">
+                <!-- Left Column: AI Notepad Editor -->
+                <div class="notepad-editor-col">
+                    <div class="editor-container">
+                        <input type="text" id="noteTitle" class="notepad-title" placeholder="Título da Anotação..."
+                            value="Nova Reunião">
+
+                        <div class="editor-wrapper">
+                            <!-- Backdrop layer for highlights and ghost-text inline with the real text -->
+                            <div class="editor-backdrop" id="editorBackdrop">
+                                <div class="highlights" id="highlights"></div>
+                            </div>
+
+                            <textarea id="smartEditor" class="smart-editor"
+                                placeholder="Comece a digitar sua anotação... a Inteligência Artificial vai sugerir complementos para você."></textarea>
+
+                            <!-- Alternative suggestion box tooltip -->
+                            <div class="suggestion-tooltip hidden" id="suggestionTooltip">
+                                <div class="suggestion-header">
+                                    <i class="fa-solid fa-sparkles"></i> Sugestão IA <span class="tab-hint">Pressione
+                                        <kbd>Tab</kbd></span>
+                                </div>
+                                <div class="suggestion-content" id="suggestionBoxContent">
+                                    ...
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="editor-status">
+                            <span id="saveStatus">Rascunho salvo</span>
+                            <span>•</span>
+                            <span id="wordCount">0 palavras</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column: AI Insights & Keywords -->
+                <div class="notepad-sidebar-col">
+                    <section class="ai-assistant-panel h-100">
+                        <div class="panel-header">
+                            <div class="ai-title">
+                                <i class="fa-solid fa-sparkles spark-icon"></i>
+                                <h3>IA em tempo real</h3>
+                            </div>
+                            <span class="ai-status active-pulse" id="aiStatus">Ouvindo...</span>
+                        </div>
+
+                        <div class="ai-content">
+                            <!-- Empty / Default state -->
+                            <div class="empty-state" id="aiEmptyState">
+                                <div class="ai-bot-icon">
+                                    <i class="fa-solid fa-brain"></i>
+                                </div>
+                                <h4>Digite para obter insights</h4>
+                                <p>Conforme você escreve, nossa IA extrai palavras-chave e contexto para complementar
+                                    suas notas automaticamente.</p>
+                            </div>
+
+                            <!-- Active State with Keywords -->
+                            <div class="active-ai-state hidden" id="aiActiveState">
+                                <div class="insight-box keywords-box">
+                                    <h5><i class="fa-solid fa-tags"></i> Palavras-chave Detectadas</h5>
+                                    <div class="keyword-tags" id="keywordTagsContainer">
+                                        <!-- Tags will be populated here -->
+                                    </div>
+                                </div>
+
+                                <div class="insight-box suggestions-info">
+                                    <h5><i class="fa-solid fa-lightbulb"></i> Como funciona?</h5>
+                                    <p>Quando você pausa a digitação, a IA sugere continuações da sua frase. Pressione a
+                                        tecla <b>Tab</b> para aceitar a sugestão.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- The custom javascript piece for the notepad -->
+    <script src="js/notepad.js"></script>
+</body>
+
+</html>

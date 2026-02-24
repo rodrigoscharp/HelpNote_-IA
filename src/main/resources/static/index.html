@@ -145,7 +145,12 @@
                         <section id="recordingsSection" class="recent-recordings">
                             <div class="section-header">
                                 <h3>Gravações Recentes</h3>
-                                <a href="#" class="view-all">Ver todas</a>
+                                <div class="header-actions">
+                                    <button id="startNewMeetingBtn" class="primary-btn sm">
+                                        <i class="fa-solid fa-microphone-lines"></i> Nova Reunião
+                                    </button>
+                                    <a href="#" class="view-all">Ver todas</a>
+                                </div>
                             </div>
 
                             <div class="notes-list">
@@ -255,6 +260,32 @@
                 </div>
             </div>
         </main>
+    </div>
+
+    <!-- Recorder Overlay -->
+    <div id="recorderOverlay" class="recorder-overlay hidden">
+        <div class="recorder-card">
+            <div class="recorder-header">
+                <h3>Gravando Reunião...</h3>
+                <span class="recording-dot"></span>
+            </div>
+            <div class="recorder-body">
+                <div class="voice-waves">
+                    <div class="wave"></div>
+                    <div class="wave"></div>
+                    <div class="wave"></div>
+                    <div class="wave"></div>
+                    <div class="wave"></div>
+                </div>
+                <div id="recordingTimer" class="recording-timer">00:00:00</div>
+            </div>
+            <div class="recorder-footer">
+                <button id="stopRecordingBtn" class="stop-btn">
+                    <i class="fa-solid fa-stop"></i> Finalizar e Gerar ATA
+                </button>
+                <button id="cancelRecordingBtn" class="cancel-btn">Cancelar</button>
+            </div>
+        </div>
     </div>
 
     <script src="js/script.js"></script>

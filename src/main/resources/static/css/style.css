@@ -1461,6 +1461,155 @@ button {
     }
 }
 
+/* Recorder Overlay Styles */
+.recorder-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(10px);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: var(--transition);
+}
+
+.recorder-card {
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    padding: 40px;
+    width: 90%;
+    max-width: 500px;
+    text-align: center;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    border: 1px solid var(--primary-light);
+}
+
+.recorder-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin-bottom: 30px;
+}
+
+.recording-dot {
+    width: 12px;
+    height: 12px;
+    background: #ff4757;
+    border-radius: 50%;
+    animation: blink 1s infinite;
+}
+
+.voice-waves {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: 60px;
+    margin-bottom: 20px;
+}
+
+.wave {
+    width: 6px;
+    height: 20px;
+    background: var(--primary);
+    border-radius: 3px;
+    animation: wave-anim 1s ease-in-out infinite;
+}
+
+.wave:nth-child(2) {
+    animation-delay: 0.1s;
+    height: 40px;
+}
+
+.wave:nth-child(3) {
+    animation-delay: 0.2s;
+    height: 55px;
+}
+
+.wave:nth-child(4) {
+    animation-delay: 0.3s;
+    height: 35px;
+}
+
+.wave:nth-child(5) {
+    animation-delay: 0.4s;
+    height: 15px;
+}
+
+.recording-timer {
+    font-size: 3rem;
+    font-weight: 700;
+    color: var(--text-main);
+    font-family: monospace;
+    margin-bottom: 30px;
+}
+
+.recorder-footer {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.stop-btn {
+    background: var(--primary);
+    color: white;
+    border: none;
+    padding: 18px;
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    font-size: 1.1rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    transition: var(--transition);
+}
+
+.stop-btn:hover {
+    background: var(--primary-accent);
+    transform: scale(1.02);
+}
+
+.cancel-btn {
+    background: transparent;
+    color: var(--text-muted);
+    border: none;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+@keyframes blink {
+
+    0%,
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    50% {
+        opacity: 0.5;
+        transform: scale(1.2);
+    }
+}
+
+@keyframes wave-anim {
+
+    0%,
+    100% {
+        transform: scaleY(1);
+    }
+
+    50% {
+        transform: scaleY(1.8);
+    }
+}
+
 
 @media (max-width: 480px) {
     .search-bar {

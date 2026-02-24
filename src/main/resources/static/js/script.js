@@ -280,4 +280,116 @@ function initializeMainApp() {
             }
         });
     }
+
+    // --- Meeting Recorder Logic ---
+    const startNewMeetingBtn = document.getElementById('startNewMeetingBtn');
+    const recorderOverlay = document.getElementById('recorderOverlay');
+    const stopRecordingBtn = document.getElementById('stopRecordingBtn');
+    const cancelRecordingBtn = document.getElementById('cancelRecordingBtn');
+    const recordingTimerText = document.getElementById('recordingTimer');
+
+    let mediaRecorder;
+    let audioChunks = [];
+    let startTime;
+    let timerInterval;
+
+    if (startNewMeetingBtn) {
+        startNewMeetingBtn.addEventListener('click', async () => {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream);
+                audioChunks = [];
+
+                mediaRecorder.ondataavailable = (event) => {
+                    audioChunks.push(event.data);
+                };
+
+                mediaRecorder.onstop = async () => {
+                    // Stop all tracks
+                    stream.getTracks().forEach(track => track.stop());
+
+                    // In a real app, we'd upload the blob. 
+                    // Here we trigger the "simulation" flow.
+                    simulateSuccessfulRecording();
+                };
+
+                recorderOverlay.classList.remove('hidden');
+                mediaRecorder.start();
+                startTimer();
+            } catch (err) {
+                console.error("Erro ao acessar microfone:", err);
+                alert("Não foi possível acessar seu microfone. Verifique as permissões do navegador.");
+            }
+        });
+    }
+
+    if (stopRecordingBtn) {
+        stopRecordingBtn.addEventListener('click', () => {
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                mediaRecorder.stop();
+                stopTimer();
+                recorderOverlay.classList.add('hidden');
+            }
+        });
+    }
+
+    if (cancelRecordingBtn) {
+        cancelRecordingBtn.addEventListener('click', () => {
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                mediaRecorder.stop();
+                stopTimer();
+                recorderOverlay.classList.add('hidden');
+                audioChunks = []; // discard
+            } else {
+                recorderOverlay.classList.add('hidden');
+            }
+        });
+    }
+
+    function startTimer() {
+        startTime = Date.now();
+        timerInterval = setInterval(() => {
+            const elapsed = Date.now() - startTime;
+            recordingTimerText.textContent = formatTime(elapsed);
+        }, 1000);
+    }
+
+    function stopTimer() {
+        clearInterval(timerInterval);
+        recordingTimerText.textContent = "00:00:00";
+    }
+
+    function formatTime(ms) {
+        const totalSeconds = Math.floor(ms / 1000);
+        const hours = Math.floor(totalSeconds / 3600);
+        const minutes = Math.floor((totalSeconds % 3600) / 60);
+        const seconds = totalSeconds % 60;
+        return [hours, minutes, seconds].map(v => v < 10 ? "0" + v : v).join(":");
+    }
+
+    function simulateSuccessfulRecording() {
+        // Show a fake loading/processing state for transcription
+        const recordingsSection = document.getElementById('recordingsSection');
+        if (recordingsSection) {
+            recordingsSection.scrollIntoView({ behavior: 'smooth' });
+
+            // For demo: pretend we added a new card and it just finished transcribing
+            setTimeout(() => {
+                const firstCard = recordingsSection.querySelector('.note-card');
+                if (firstCard) {
+                    firstCard.click();
+                    setTimeout(() => {
+                        const ataBtn = document.getElementById('generateAtaBtn');
+                        if (ataBtn) {
+                            ataBtn.click();
+                            // Optional: Alert the user that ATA is being generated
+                            const originalText = ataBtn.innerHTML;
+                            ataBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Gerando ATA...';
+                            setTimeout(() => ataBtn.innerHTML = originalText, 2000);
+                        }
+                    }, 800);
+                }
+            }, 1000);
+        }
+    }
 }

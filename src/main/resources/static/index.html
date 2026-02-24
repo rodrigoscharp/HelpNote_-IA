@@ -29,13 +29,13 @@
                     <i class="fa-solid fa-house"></i>
                     <span>Início</span>
                 </a>
-                <a href="#" class="nav-item">
-                    <i class="fa-solid fa-folder-open"></i>
-                    <span>Minhas Notas</span>
+                <a href="smart-notepad.html" class="nav-item">
+                    <i class="fa-solid fa-pen-to-square"></i>
+                    <span>Nova Nota</span>
                 </a>
                 <a href="#" class="nav-item">
-                    <i class="fa-solid fa-robot"></i>
-                    <span>Insights IA</span>
+                    <i class="fa-solid fa-plus"></i>
+                    <span>Nova Gravação</span>
                 </a>
                 <a href="#" class="nav-item">
                     <i class="fa-solid fa-gear"></i>
@@ -60,22 +60,19 @@
         <!-- Main Content Area -->
         <main class="main-content">
             <header class="top-header">
-                <div class="search-bar">
-                    <i class="fa-solid fa-magnifying-glass"></i>
-                    <input type="text" placeholder="Busque em suas notas ou transcrições...">
+                <div class="header-left">
+                    <button id="menuToggle" class="menu-toggle">
+                        <i class="fa-solid fa-bars"></i>
+                    </button>
+                    <div class="search-bar">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <input type="text" placeholder="Busque em suas notas...">
+                    </div>
                 </div>
                 <div class="header-actions">
                     <button class="icon-btn tooltip" data-tooltip="Notificações">
                         <i class="fa-regular fa-bell"></i>
                         <span class="badge">3</span>
-                    </button>
-                    <a href="smart-notepad.html" class="secondary-btn new-note-btn">
-                        <i class="fa-solid fa-pen-to-square"></i>
-                        <span>Nova Nota Escrita</span>
-                    </a>
-                    <button class="primary-btn new-note-btn">
-                        <i class="fa-solid fa-plus"></i>
-                        <span>Nova Gravação</span>
                     </button>
                 </div>
             </header>

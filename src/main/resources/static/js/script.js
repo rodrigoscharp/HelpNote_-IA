@@ -479,4 +479,86 @@ function initializeMainApp() {
             renderHistory();
         });
     });
+    // --- Profile Settings Logic ---
+    const settingsMenuLink = document.getElementById('settingsMenuLink');
+    const settingsOverlay = document.getElementById('settingsOverlay');
+    const closeSettingsBtn = document.getElementById('closeSettingsBtn');
+    const profileForm = document.getElementById('profileForm');
+    const saveProfileBtn = document.getElementById('saveProfileBtn');
+    const userNameInput = document.getElementById('userNameInput');
+    const settingsSuccessMsg = document.getElementById('settingsSuccessMsg');
+    const avatarUpload = document.getElementById('avatarUpload');
+    const profileAvatarImg = document.getElementById('profileAvatarImg');
+
+    if (settingsMenuLink) {
+        settingsMenuLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            settingsOverlay.classList.remove('hidden');
+        });
+    }
+
+    if (closeSettingsBtn) {
+        closeSettingsBtn.addEventListener('click', () => {
+            settingsOverlay.classList.add('hidden');
+            settingsSuccessMsg.classList.add('hidden');
+        });
+    }
+
+    // Avatar Upload Preview
+    if (avatarUpload) {
+        avatarUpload.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    profileAvatarImg.src = event.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+    }
+
+    if (saveProfileBtn) {
+        saveProfileBtn.addEventListener('click', () => {
+            const newName = userNameInput.value.trim();
+            if (newName) {
+                // Update Greeting on Dashboard
+                const greetingText = document.getElementById('greetingText');
+                if (greetingText) {
+                    const firstName = newName.split(' ')[0];
+                    const hours = new Date().getHours();
+                    let greeting = "Bom dia";
+                    if (hours >= 12 && hours < 18) greeting = "Boa tarde";
+                    if (hours >= 18 || hours < 5) greeting = "Boa noite";
+                    greetingText.textContent = `${greeting}, ${firstName}! 👋`;
+                }
+
+                // Show Success Toast
+                settingsSuccessMsg.classList.remove('hidden');
+                setTimeout(() => {
+                    settingsSuccessMsg.classList.add('hidden');
+                    settingsOverlay.classList.add('hidden');
+                }, 1500);
+
+                // Save to localStorage so it persists in the session
+                localStorage.setItem('helpnote_username', newName);
+            }
+        });
+    }
+
+    // Initial load of username
+    const savedName = localStorage.getItem('helpnote_username');
+    if (savedName && userNameInput) {
+        userNameInput.value = savedName;
+        // Trigger greeting update if on dashboard
+        const greetingText = document.getElementById('greetingText');
+        if (greetingText) {
+            const firstName = savedName.split(' ')[0];
+            const hours = new Date().getHours();
+            let greeting = "Bom dia";
+            if (hours >= 12 && hours < 18) greeting = "Boa tarde";
+            if (hours >= 18 || hours < 5) greeting = "Boa noite";
+            greetingText.textContent = `${greeting}, ${firstName}! 👋`;
+        }
+    }
 }

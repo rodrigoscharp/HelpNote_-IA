@@ -37,7 +37,7 @@
                     <i class="fa-solid fa-clipboard-list"></i>
                     <span>ATA de reuniões</span>
                 </a>
-                <a href="#" class="nav-item">
+                <a href="#" id="settingsMenuLink" class="nav-item">
                     <i class="fa-solid fa-gear"></i>
                     <span>Configurações</span>
                 </a>
@@ -303,6 +303,54 @@
 
             <div id="historyList" class="history-list">
                 <!-- History Items will be injected here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Profile Settings Overlay -->
+    <div id="settingsOverlay" class="settings-overlay hidden">
+        <div class="settings-card">
+            <div class="settings-header">
+                <h2>Perfil e Configurações</h2>
+                <button id="closeSettingsBtn" class="close-overlay-btn"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="settings-body">
+                <div class="profile-preview">
+                    <div class="avatar-large">
+                        <img src="https://ui-avatars.com/api/?name=Rodrigo+Scharp&background=6c5ce7&color=fff"
+                            alt="Avatar" id="profileAvatarImg">
+                        <label for="avatarUpload" class="avatar-edit-label">
+                            <i class="fa-solid fa-camera"></i>
+                            <input type="file" id="avatarUpload" hidden>
+                        </label>
+                    </div>
+                </div>
+                <form id="profileForm" class="settings-form">
+                    <div class="form-group">
+                        <label for="userNameInput">Nome Completo</label>
+                        <input type="text" id="userNameInput" value="Rodrigo Scharp" placeholder="Seu nome">
+                    </div>
+                    <div class="form-group">
+                        <label for="userEmailInput">E-mail</label>
+                        <input type="email" id="userEmailInput" value="rodrigo@example.com" placeholder="seu@email.com">
+                    </div>
+                    <div class="form-group">
+                        <label>Preferências</label>
+                        <div class="checkbox-group">
+                            <label class="switch-container">
+                                <input type="checkbox" checked>
+                                <span class="slider"></span>
+                                Notificações por E-mail
+                            </label>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="settings-footer">
+                <button id="saveProfileBtn" class="primary-btn">Salvar Alterações</button>
+                <div id="settingsSuccessMsg" class="success-toast hidden">
+                    <i class="fa-solid fa-circle-check"></i> Dados salvos com sucesso!
+                </div>
             </div>
         </div>
     </div>

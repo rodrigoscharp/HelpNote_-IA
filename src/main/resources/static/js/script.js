@@ -50,8 +50,26 @@ function initializeMainApp() {
             if (userProfileName) {
                 userProfileName.textContent = user.userName;
             }
+            updateGreeting(user.userName);
         })
         .catch(err => console.log("Auth session exception:", err));
+
+    function updateGreeting(userName) {
+        const greetingText = document.getElementById('greetingText');
+        if (!greetingText) return;
+
+        const hour = new Date().getHours();
+        let greeting = "Bom dia";
+
+        if (hour >= 12 && hour < 18) {
+            greeting = "Boa tarde";
+        } else if (hour >= 18 || hour < 5) {
+            greeting = "Boa noite";
+        }
+
+        const firstName = userName ? userName.split(' ')[0] : 'Usuário';
+        greetingText.innerHTML = `${greeting}, ${firstName}! 👋`;
+    }
 
     // Handle Logout
     const logoutBtn = document.getElementById('logoutBtn');
@@ -188,4 +206,4 @@ function initializeMainApp() {
         });
     });
 
-});
+}

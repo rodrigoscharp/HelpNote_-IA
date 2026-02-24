@@ -25,4 +25,10 @@ public class AiNoteController {
         AiSuggestionResponse response = aiService.generateSuggestion(request);
         return ResponseEntity.ok(response);
     }
+
+    @PostMapping("/generate-ata")
+    public ResponseEntity<String> generateAta(@RequestBody AiSuggestionRequest request) {
+        String ata = aiService.generateMeetingMinutes(request.getText(), request.getTitle());
+        return ResponseEntity.ok(ata);
+    }
 }

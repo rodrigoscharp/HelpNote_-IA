@@ -62,32 +62,39 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentSuggestion = "";
     let currentKeywords = [];
 
-    // Formatting and state
     let isRequesting = false;
+    let lastProcessedText = "";
 
-    // Word Count
+    // Word Count & Input Handling
     editor.addEventListener('input', () => {
-        const text = editor.value.trim();
-        const words = text ? text.split(/\s+/).length : 0;
+        const text = editor.value;
+        const trimmedText = text.trim();
+        const words = trimmedText ? trimmedText.split(/\s+/).length : 0;
         wordCount.textContent = `${words} palavra${words !== 1 ? 's' : ''}`;
 
-        // Hide ghost text/suggestions when user starts typing again
-        clearSuggestions();
-        updateBackdrop();
+        // Sync scroll immediately
+        if (backdrop) backdrop.scrollTop = editor.scrollTop;
 
-        // Debounce API calls
+        // Debounce AI logic
         clearTimeout(typingTimer);
 
-        if (text.length > 5) {
-            aiStatus.textContent = "Analisando...";
-            aiStatus.classList.add('analyzing');
+        // Only clear if the text has actually changed meaningfully (not just space)
+        if (text !== lastProcessedText) {
+            clearSuggestions();
+            updateBackdrop();
+        }
 
-            typingTimer = setTimeout(fetchAiSuggestions, doneTypingInterval);
+        if (trimmedText.length > 3) {
+            aiStatus.textContent = "Pensando...";
+            aiStatus.classList.add('analyzing');
+            typingTimer = setTimeout(fetchAiSuggestions, 500); // Shorter debounce for "snappier" feel
         } else {
             resetSidebar();
             currentKeywords = [];
             updateBackdrop();
         }
+
+        lastProcessedText = text;
     });
 
     // Handle Tab key to accept suggestion
@@ -165,6 +172,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 // Update the backdrop to show new keywords and ghost text
                 updateBackdrop();
+
+                // Show tooltip with animation
+                if (currentSuggestion) {
+                    suggestionTooltip.classList.remove('hidden');
+                    suggestionTooltip.style.animation = 'slideUp 0.3s ease-out';
+                }
             }
         } catch (error) {
             console.error("Erro ao obter sugestões da IA", error);

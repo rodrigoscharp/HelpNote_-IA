@@ -33,9 +33,9 @@
                     <i class="fa-solid fa-pen-to-square"></i>
                     <span>Nova Nota</span>
                 </a>
-                <a href="#" class="nav-item">
-                    <i class="fa-solid fa-plus"></i>
-                    <span>Nova Gravação</span>
+                <a href="#" id="ataMenuLink" class="nav-item">
+                    <i class="fa-solid fa-clipboard-list"></i>
+                    <span>ATA de reuniões</span>
                 </a>
                 <a href="#" class="nav-item">
                     <i class="fa-solid fa-gear"></i>
@@ -142,7 +142,7 @@
                         </section>
 
                         <!-- Recent Files -->
-                        <section class="recent-notes">
+                        <section id="recordingsSection" class="recent-recordings">
                             <div class="section-header">
                                 <h3>Gravações Recentes</h3>
                                 <a href="#" class="view-all">Ver todas</a>
@@ -228,6 +228,19 @@
                                             <li><input type="checkbox"> Marcar reunião técnica sobre o gateway</li>
                                             <li><input type="checkbox"> Revisar os textos traduzidos do app</li>
                                         </ul>
+                                    </div>
+
+                                    <button id="generateAtaBtn" class="primary-btn ata-btn">
+                                        <i class="fa-solid fa-file-contract"></i>
+                                        <span>Gerar ATA da Reunião</span>
+                                    </button>
+
+                                    <div id="ataResult" class="insight-box ata-box hidden">
+                                        <h5><i class="fa-solid fa-file-lines"></i> ATA da Reunião</h5>
+                                        <div class="ata-content"></div>
+                                        <button class="secondary-btn download-ata-btn">
+                                            <i class="fa-solid fa-download"></i> Baixar PDF
+                                        </button>
                                     </div>
                                 </div>
                             </div>

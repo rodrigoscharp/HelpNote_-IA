@@ -206,4 +206,78 @@ function initializeMainApp() {
         });
     });
 
+    // ATA Generation Logic
+    const generateAtaBtn = document.getElementById('generateAtaBtn');
+    const ataResult = document.getElementById('ataResult');
+    const ataContent = ataResult ? ataResult.querySelector('.ata-content') : null;
+
+    if (generateAtaBtn && ataResult && ataContent) {
+        generateAtaBtn.addEventListener('click', async () => {
+            const transcriptText = document.querySelector('.transcription-text p')?.textContent || "";
+            const noteTitle = document.querySelector('.note-header h3')?.textContent || "Reunião";
+
+            // Show loading state
+            generateAtaBtn.disabled = true;
+            generateAtaBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Processando...';
+
+            try {
+                const response = await fetch('/api/ai/generate-ata', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text: transcriptText, title: noteTitle })
+                });
+
+                if (response.ok) {
+                    const ataHtml = await response.text();
+                    ataContent.innerHTML = ataHtml;
+                    ataResult.classList.remove('hidden');
+                    ataResult.style.display = 'block';
+                    generateAtaBtn.classList.add('hidden');
+
+                    // Scroll to result
+                    ataResult.scrollIntoView({ behavior: 'smooth' });
+                }
+            } catch (error) {
+                console.error("Erro ao gerar ATA:", error);
+                alert("Falha ao gerar ATA. Verifique a conexão.");
+            } finally {
+                generateAtaBtn.disabled = false;
+                generateAtaBtn.innerHTML = '<i class="fa-solid fa-file-contract"></i> <span>Gerar ATA da Reunião</span>';
+            }
+        });
+    }
+
+    // Sidebar "ATA de reuniões" Functional Logic
+    const ataMenuLink = document.getElementById('ataMenuLink');
+    if (ataMenuLink) {
+        ataMenuLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            const recordingsSection = document.getElementById('recordingsSection');
+            if (recordingsSection) {
+                recordingsSection.scrollIntoView({ behavior: 'smooth' });
+
+                // Highlight the first successful note-card to prompt the user
+                const firstCard = recordingsSection.querySelector('.note-card');
+                if (firstCard) {
+                    firstCard.style.animation = 'pulse 1.5s infinite';
+                    setTimeout(() => firstCard.style.animation = '', 4500);
+
+                    // On desktop, automatically select the card to open the AI panel
+                    if (window.innerWidth > 768) {
+                        firstCard.click();
+
+                        // Wait for panel to open, then scroll to the ATA button
+                        setTimeout(() => {
+                            const genAtaBtn = document.getElementById('generateAtaBtn');
+                            if (genAtaBtn) {
+                                genAtaBtn.scrollIntoView({ behavior: 'smooth' });
+                                genAtaBtn.style.boxShadow = '0 0 15px var(--primary-accent)';
+                                setTimeout(() => genAtaBtn.style.boxShadow = '', 3000);
+                            }
+                        }, 500);
+                    }
+                }
+            }
+        });
+    }
 }

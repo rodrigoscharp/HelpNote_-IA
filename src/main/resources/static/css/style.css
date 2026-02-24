@@ -1610,6 +1610,212 @@ button {
     }
 }
 
+/* History Overlay Styles */
+.history-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(18, 18, 26, 0.98);
+    /* Based on --bg-rgb-dark */
+    backdrop-filter: blur(20px);
+    z-index: 10000;
+    display: flex;
+    justify-content: center;
+    animation: fadeIn 0.3s ease-out;
+}
+
+.history-overlay.hidden {
+    display: none;
+}
+
+.history-container {
+    width: 90%;
+    max-width: 1000px;
+    padding: 60px 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.history-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 40px;
+}
+
+.history-header h2 {
+    font-size: 2rem;
+    color: var(--text-main);
+}
+
+.close-overlay-btn {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    color: var(--text-muted);
+    transition: var(--transition);
+}
+
+.close-overlay-btn:hover {
+    transform: rotate(90deg);
+    color: #ff4757;
+    border-color: #ff4757;
+}
+
+.history-toolbar {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.history-toolbar .search-box {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 15px 25px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.history-toolbar .search-box i {
+    color: var(--text-muted);
+}
+
+.history-toolbar .search-box input {
+    background: transparent;
+    border: none;
+    width: 100%;
+    font-size: 1.1rem;
+    color: var(--text-main);
+    outline: none;
+}
+
+.filter-tabs {
+    display: flex;
+    gap: 10px;
+}
+
+.filter-tab {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    padding: 10px 25px;
+    border-radius: 50px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: var(--transition);
+    color: var(--text-muted);
+}
+
+.filter-tab.active {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
+}
+
+.history-list {
+    flex: 1;
+    overflow-y: auto;
+    padding-right: 10px;
+}
+
+/* History Card */
+.history-item {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    margin-bottom: 15px;
+    transition: var(--transition);
+    cursor: pointer;
+}
+
+.history-item:hover {
+    transform: translateX(5px);
+    border-color: var(--primary-light);
+    box-shadow: 0 10px 30px -15px rgba(108, 92, 231, 0.2);
+}
+
+.h-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.4rem;
+}
+
+.h-icon.ata {
+    background: rgba(108, 92, 231, 0.1);
+    color: var(--primary);
+}
+
+.h-icon.note {
+    background: rgba(0, 210, 211, 0.1);
+    color: var(--secondary);
+}
+
+.h-info {
+    flex: 1;
+}
+
+.h-info h4 {
+    font-size: 1.1rem;
+    margin-bottom: 5px;
+    color: var(--text-main);
+}
+
+.h-info span {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+}
+
+.h-action {
+    color: var(--text-muted);
+    opacity: 0;
+    transition: 0.2s;
+}
+
+.history-item:hover .h-action {
+    opacity: 1;
+}
+
+.stat-card.clickable {
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.stat-card.clickable:hover {
+    transform: translateY(-5px);
+    border-color: var(--primary-light);
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        backdrop-filter: blur(0px);
+    }
+
+    to {
+        opacity: 1;
+        backdrop-filter: blur(20px);
+    }
+}
+
 
 @media (max-width: 480px) {
     .search-bar {

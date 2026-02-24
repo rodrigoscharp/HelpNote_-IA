@@ -392,4 +392,91 @@ function initializeMainApp() {
             }, 1000);
         }
     }
+    // --- History System Logic ---
+    const statsAtas = document.getElementById('statsAtas');
+    const statsNotes = document.getElementById('statsNotes');
+    const historyOverlay = document.getElementById('historyOverlay');
+    const closeHistoryBtn = document.getElementById('closeHistoryBtn');
+    const historyList = document.getElementById('historyList');
+    const historySearchInput = document.getElementById('historySearchInput');
+    const filterTabs = document.querySelectorAll('.filter-tab');
+
+    // Mock Data for History
+    const historyData = [
+        { id: 1, type: 'ata', title: 'Reunião de Alinhamento Q1', date: '21/02/2026', preview: 'Discussão sobre metas de faturamento e expansão.' },
+        { id: 2, type: 'note', title: 'Ideias para o Design da Home', date: '20/02/2026', preview: 'Explorar glassmorphism e cores vibrantes.' },
+        { id: 3, type: 'ata', title: 'Daily Scrum - Dev Team', date: '19/02/2026', preview: 'Impedimentos no gateway de pagamento resolvidos.' },
+        { id: 4, type: 'note', title: 'Estudos de Java Moderno', date: '18/02/2026', preview: 'Anotações sobre Records e Sealed Classes.' },
+        { id: 5, type: 'ata', title: 'Entrevista: Candidato UX Design', date: '15/02/2026', preview: 'Avaliação técnica e portfólio de interfaces móveis.' },
+        { id: 6, type: 'note', title: 'Lista de Compras Escritório', date: '14/02/2026', preview: 'Monitor, teclado mecânico e café.' },
+        { id: 7, type: 'ata', title: 'Workshop de IA Generativa', date: '10/02/2026', preview: 'Exploração de APIs da Google DeepMind.' },
+        { id: 8, type: 'note', title: 'Roteiro de Viagem Férias', date: '05/02/2026', preview: 'Destinos: Lisboa, Porto e Algarve.' }
+    ];
+
+    let currentFilter = 'all';
+
+    if (statsAtas) statsAtas.addEventListener('click', () => openHistory('ata'));
+    if (statsNotes) statsNotes.addEventListener('click', () => openHistory('note'));
+    if (closeHistoryBtn) closeHistoryBtn.addEventListener('click', () => historyOverlay.classList.add('hidden'));
+
+    function openHistory(filter = 'all') {
+        currentFilter = filter;
+        historyOverlay.classList.remove('hidden');
+
+        // Update tabs UI
+        filterTabs.forEach(tab => {
+            tab.classList.toggle('active', tab.dataset.filter === filter);
+        });
+
+        renderHistory();
+    }
+
+    function renderHistory() {
+        const searchTerm = historySearchInput.value.toLowerCase();
+
+        const filtered = historyData.filter(item => {
+            const matchesFilter = currentFilter === 'all' || item.type === currentFilter;
+            const matchesSearch = item.title.toLowerCase().includes(searchTerm) ||
+                item.preview.toLowerCase().includes(searchTerm);
+            return matchesFilter && matchesSearch;
+        });
+
+        historyList.innerHTML = filtered.length > 0 ? '' : '<p class="text-center" style="margin-top: 50px; color: var(--text-muted);">Nenhum item encontrado.</p>';
+
+        filtered.forEach(item => {
+            const div = document.createElement('div');
+            div.className = 'history-item';
+            div.innerHTML = `
+                <div class="h-icon ${item.type}">
+                    <i class="fa-solid ${item.type === 'ata' ? 'fa-clipboard-list' : 'fa-wand-magic-sparkles'}"></i>
+                </div>
+                <div class="h-info">
+                    <h4>${item.title}</h4>
+                    <span>${item.date} • ${item.preview}</span>
+                </div>
+                <div class="h-action">
+                    <i class="fa-solid fa-chevron-right"></i>
+                </div>
+            `;
+            div.addEventListener('click', () => {
+                alert(`Abrindo: ${item.title}`);
+                historyOverlay.classList.add('hidden');
+            });
+            historyList.appendChild(div);
+        });
+    }
+
+    // Search and Filter Events
+    if (historySearchInput) {
+        historySearchInput.addEventListener('input', renderHistory);
+    }
+
+    filterTabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            filterTabs.forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            currentFilter = tab.dataset.filter;
+            renderHistory();
+        });
+    });
 }

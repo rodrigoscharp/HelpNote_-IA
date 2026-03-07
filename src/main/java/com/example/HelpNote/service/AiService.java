@@ -3,6 +3,7 @@ package com.example.HelpNote.service;
 import java.util.Arrays;
 import java.util.List;
 
+import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.stereotype.Service;
 
 import com.example.HelpNote.dto.AiSuggestionRequest;
@@ -11,98 +12,114 @@ import com.example.HelpNote.dto.AiSuggestionResponse;
 @Service
 public class AiService {
 
-    public AiSuggestionResponse generateSuggestion(AiSuggestionRequest request) {
-        // ... existing generateSuggestion code ...
-        return generateSuggestionInternal(request);
+    private final ChatClient chatClient;
+
+    public AiService(ChatClient.Builder chatClientBuilder) {
+        this.chatClient = chatClientBuilder.build();
     }
 
-    private AiSuggestionResponse generateSuggestionInternal(AiSuggestionRequest request) {
-        String currentText = request.getText();
-        String titleContext = request.getTitle() != null ? request.getTitle().toLowerCase() : "";
-        
-        try {
-            Thread.sleep(600); // Faster response for better UX
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
-
-        if (currentText == null || currentText.trim().isEmpty()) {
+    public AiSuggestionResponse generateSuggestion(AiSuggestionRequest request) {
+        if (request.getText() == null || request.getText().trim().isEmpty()) {
             return new AiSuggestionResponse(List.of(), "");
         }
 
-        String lowerText = currentText.toLowerCase().trim();
-        String[] words = lowerText.split("\\s+");
+        String systemPrompt = """
+                Você é um assistente de escrita para o aplicativo HelpNote.
+                Sua tarefa é analisar o texto atual do usuário e o título da nota, e fornecer:
+                1. Uma lista de até 3 palavras-chave (keywords) que resumam o contexto.
+                2. Uma sugestão de continuação curta e natural para o texto (completion).
+                
+                Responda APENAS em formato JSON válido, sem markdown, seguindo esta estrutura:
+                {
+                  "keywords": ["exemplo1", "exemplo2"],
+                  "completion": "continuação sugerida..."
+                }
+                """;
+
+        String userPrompt = "Título: {title}\nTexto atual: {text}";
         
-        List<String> keywords;
-        String completion;
+        try {
+            String responseJson = chatClient.prompt()
+                    .system(systemPrompt)
+                    .user(u -> u.text(userPrompt)
+                            .param("title", request.getTitle() != null ? request.getTitle() : "Sem título")
+                            .param("text", request.getText()))
+                    .call()
+                    .content();
 
-        // Simulate "Prompt-like" logic by analyzing the end of the user's text
-        if (lowerText.contains("então") || lowerText.contains("portanto") || lowerText.contains("concluimos que")) {
-            completion = " é fundamental revisarmos os pontos discutidos para garantir o alinhamento total da equipe.";
-            keywords = Arrays.asList("Conclusão", "Alinhamento", "Próximos Passos");
-        } else if (lowerText.contains("por exemplo") || lowerText.contains("como")) {
-            completion = " podemos citar o caso de sucesso da implementação anterior, que reduziu custos em 15%.";
-            keywords = Arrays.asList("Exemplo", "Estudo de Caso", "Eficiência");
-        } else if (lowerText.contains("o problema") || lowerText.contains("a dificuldade")) {
-            completion = " reside na falta de integração entre os sistemas legados e a nova infraestrutura de nuvem.";
-            keywords = Arrays.asList("Problema", "Infraestrutura", "Integração");
-        } else if (words.length > 10) {
-            // Continuation based on general context if text is getting long
-            if (titleContext.contains("tecnologia") || lowerText.contains("sistema") || lowerText.contains("app")) {
-                completion = " facilitando a escalabilidade do sistema através de microsserviços bem definidos.";
-                keywords = Arrays.asList("Escalabilidade", "Sistemas", "Arquitetura");
-            } else if (titleContext.contains("negócios") || lowerText.contains("vendas") || lowerText.contains("mercado")) {
-                completion = " o que permite uma vantagem competitiva significativa no cenário atual do mercado.";
-                keywords = Arrays.asList("Competitividade", "Mercado", "Estratégia");
-            } else {
-                completion = " essa abordagem permite uma compreensão mais profunda sobre as nuances do assunto.";
-                keywords = Arrays.asList("Análise", "Contexto", "Perspectiva");
+            // Simple manual parse for now to avoid extra dependencies, or use a proper JSON library if available.
+            // Assuming the LLM follows the JSON instructions strictly.
+            // Using a more robust approach with Map if possible, but let's stick to simple logic for now.
+            
+            return parseSuggestionResponse(responseJson);
+            
+        } catch (Exception e) {
+            // Fallback to minimal response on error
+            return new AiSuggestionResponse(List.of("AI Error"), " Tente novamente em instantes.");
+        }
+    }
+
+    private AiSuggestionResponse parseSuggestionResponse(String json) {
+        // Very basic parsing for demo purposes; in production use Jackson
+        try {
+            // Remove potential markdown code blocks
+            String cleanJson = json.replaceAll("```json", "").replaceAll("```", "").trim();
+            
+            // Extract keywords
+            List<String> keywords = List.of();
+            if (cleanJson.contains("\"keywords\"")) {
+                int start = cleanJson.indexOf("[") + 1;
+                int end = cleanJson.indexOf("]");
+                String[] kws = cleanJson.substring(start, end).replace("\"", "").split(",");
+                keywords = Arrays.stream(kws).map(String::trim).toList();
             }
-        } else {
-            // Small prompt for short text
-            completion = " para continuarmos o desenvolvimento desta ideia central de forma estruturada.";
-            keywords = Arrays.asList("Ideia", "Estrutura", "Desenvolvimento");
-        }
 
-        // UX check: If the user didn't finish with a space, add one to the completion
-        if (!currentText.endsWith(" ")) {
-            completion = " " + completion.trim();
-        }
+            // Extract completion
+            String completion = "";
+            if (cleanJson.contains("\"completion\"")) {
+                int start = cleanJson.indexOf("\"completion\":") + 13;
+                int lastQuote = cleanJson.lastIndexOf("\"");
+                // Find the first quote after the colon
+                int firstQuote = cleanJson.indexOf("\"", start);
+                completion = cleanJson.substring(firstQuote + 1, lastQuote).trim();
+            }
 
-        return new AiSuggestionResponse(keywords, completion);
+            return new AiSuggestionResponse(keywords, completion);
+        } catch (Exception e) {
+            return new AiSuggestionResponse(List.of("Analysis"), " Erro ao processar sugestão.");
+        }
     }
 
     public String generateMeetingMinutes(String transcript, String title) {
-        // Mocking a long LLM generation for meeting minutes
+        if (transcript == null || transcript.trim().isEmpty()) {
+            return "Transcrição vazia. Não é possível gerar a ata.";
+        }
+
+        String systemPrompt = """
+                Você é um assistente especializado em criar Atas de Reunião profissionais.
+                Com base na transcrição fornecida, gere uma ata estruturada em HTML (sem as tags <html> ou <body>).
+                Use <strong> para títulos e listas <ul>/<li> para itens.
+                
+                Siga esta estrutura:
+                - Título da Reunião
+                - Data (pode usar a data atual ou extrair se houver)
+                - Pauta e Resumo
+                - Decisões Tomadas
+                - Ações e Próximos Passos (To-dos)
+                """;
+
+        String userPrompt = "Título: {title}\nTranscrição: {transcript}";
+
         try {
-            Thread.sleep(2000); 
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
+            return chatClient.prompt()
+                    .system(systemPrompt)
+                    .user(u -> u.text(userPrompt)
+                            .param("title", title != null ? title : "Reunião Sem Título")
+                            .param("transcript", transcript))
+                    .call()
+                    .content();
+        } catch (Exception e) {
+            return "Erro ao gerar ata: " + e.getMessage();
         }
-
-        StringBuilder ata = new StringBuilder();
-        ata.append("<strong>Título:</strong> ").append(title != null ? title : "Reunião Sem Título").append("<br><br>");
-        ata.append("<strong>Data:</strong> 23/02/2026<br>");
-        ata.append("<strong>Pauta:</strong> Alinhamento de objetivos e definição de próximos passos.<br><br>");
-        
-        ata.append("<strong>Discussão:</strong><br>");
-        if (transcript.toLowerCase().contains("produto") || transcript.toLowerCase().contains("design")) {
-            ata.append("- A equipe revisou os protótipos de alta fidelidade e validou a nova paleta de cores.<br>");
-            ata.append("- O módulo de Analytics foi adiado para a v2.0 para focar na estabilidade core.<br>");
-        } else {
-            ata.append("- Discutiu-se a expansão para o mercado europeu e a implementação de novos métodos de pagamento.<br>");
-            ata.append("- Foi levantada a necessidade de uma revisão técnica profunda no gateway atual.<br>");
-        }
-
-        ata.append("<br><strong>Decisões:</strong><br>");
-        ata.append("- Aprovação unânime do novo cronograma de entregas para o Q3.<br>");
-        ata.append("- Alocação de dois desenvolvedores extras para a feature de segurança.<br>");
-
-        ata.append("<br><strong>Ações (To-dos):</strong><br>");
-        ata.append("- [ ] Enviar orçamento de marketing para o financeiro.<br>");
-        ata.append("- [ ] Agendar reunião com o suporte técnico para terça-feira.<br>");
-        ata.append("- [ ] Revisar documentos de tradução do aplicativo.<br>");
-
-        return ata.toString();
     }
 }

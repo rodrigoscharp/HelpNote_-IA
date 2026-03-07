@@ -13,9 +13,12 @@ public class Note {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     private String title;
+    private String content; // New field for text-based notes
     private String audioFilePath;
+    private String transcription;
+    private String summary;
+    private String keywords;
     private LocalDateTime uploadDateTime;
-    // Other fields for transcription, summary, etc. will be added later
 
     public Note() {
     }
@@ -43,12 +46,44 @@ public class Note {
         this.title = title;
     }
 
+    public String getContent() {
+        return content;
+    }
+
+    public void setContent(String content) {
+        this.content = content;
+    }
+
     public String getAudioFilePath() {
         return audioFilePath;
     }
 
     public void setAudioFilePath(String audioFilePath) {
         this.audioFilePath = audioFilePath;
+    }
+
+    public String getTranscription() {
+        return transcription;
+    }
+
+    public void setTranscription(String transcription) {
+        this.transcription = transcription;
+    }
+
+    public String getSummary() {
+        return summary;
+    }
+
+    public void setSummary(String summary) {
+        this.summary = summary;
+    }
+
+    public String getKeywords() {
+        return keywords;
+    }
+
+    public void setKeywords(String keywords) {
+        this.keywords = keywords;
     }
 
     public LocalDateTime getUploadDateTime() {

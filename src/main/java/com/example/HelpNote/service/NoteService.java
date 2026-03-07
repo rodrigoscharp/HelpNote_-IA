@@ -1,18 +1,20 @@
 package com.example.HelpNote.service;
 
-import com.example.HelpNote.domain.Note;
-import com.example.HelpNote.repository.NoteRepository;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
-
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
-import java.util.Objects;
 import java.util.UUID;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+
+import com.example.HelpNote.domain.Note;
+import com.example.HelpNote.dto.AiSuggestionRequest;
+import com.example.HelpNote.dto.AiSuggestionResponse;
+import com.example.HelpNote.repository.NoteRepository;
 
 @Service
 public class NoteService {
@@ -21,9 +23,35 @@ public class NoteService {
     private String uploadDir;
 
     private final NoteRepository noteRepository;
+    private final AiService aiService;
 
-    public NoteService(NoteRepository noteRepository) {
+    public NoteService(NoteRepository noteRepository, AiService aiService) {
         this.noteRepository = noteRepository;
+        this.aiService = aiService;
+    }
+
+    public Note saveTextNote(String title, String content) {
+        Note note = new Note();
+        note.setTitle(title);
+        note.setContent(content);
+        note.setUploadDateTime(LocalDateTime.now());
+
+        // Process with AI to get keywords and summary
+        try {
+            AiSuggestionRequest request = new AiSuggestionRequest();
+            request.setTitle(title);
+            request.setText(content);
+            
+            AiSuggestionResponse suggestion = aiService.generateSuggestion(request);
+            if (suggestion != null && suggestion.getKeywords() != null) {
+                note.setKeywords(String.join(", ", suggestion.getKeywords()));
+            }
+        } catch (Exception e) {
+            // Log error but save note anyway
+            System.err.println("Erro ao processar IA para nota: " + e.getMessage());
+        }
+
+        return noteRepository.save(note);
     }
 
     public Note saveAudioFile(MultipartFile audioFile, String title) throws IOException {

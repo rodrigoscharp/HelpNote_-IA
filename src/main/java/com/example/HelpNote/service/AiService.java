@@ -74,12 +74,11 @@ public class AiService {
                 keywords = Arrays.stream(kws).map(String::trim).toList();
             }
 
-            // Extract completion
+            // Extract completion (suggestedCompletion)
             String completion = "";
-            if (cleanJson.contains("\"completion\"")) {
-                int start = cleanJson.indexOf("\"completion\":") + 13;
+            if (cleanJson.contains("\"suggestedCompletion\"")) {
+                int start = cleanJson.indexOf("\"suggestedCompletion\":") + 22;
                 int lastQuote = cleanJson.lastIndexOf("\"");
-                // Find the first quote after the colon
                 int firstQuote = cleanJson.indexOf("\"", start);
                 completion = cleanJson.substring(firstQuote + 1, lastQuote).trim();
             }

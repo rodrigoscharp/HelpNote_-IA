@@ -595,11 +595,33 @@ function initializeMainApp() {
             if (file) {
                 const reader = new FileReader();
                 reader.onload = (event) => {
-                    profileAvatarImg.src = event.target.result;
+                    const avatarDataUrl = event.target.result;
+                    profileAvatarImg.src = avatarDataUrl;
+                    
+                    // Show preview in sidebar too
+                    updateSidebarAvatar(avatarDataUrl);
                 };
                 reader.readAsDataURL(file);
             }
         });
+    }
+
+    function updateSidebarAvatar(dataUrl) {
+        const sidebarAvatar = document.getElementById('sidebarAvatar');
+        if (sidebarAvatar) {
+            const icon = sidebarAvatar.querySelector('i');
+            const img = sidebarAvatar.querySelector('.sidebar-avatar-img');
+            if (dataUrl) {
+                if (icon) icon.classList.add('hidden');
+                if (img) {
+                    img.src = dataUrl;
+                    img.classList.remove('hidden');
+                }
+            } else {
+                if (icon) icon.classList.remove('hidden');
+                if (img) img.classList.add('hidden');
+            }
+        }
     }
 
     if (saveProfileBtn) {
@@ -626,12 +648,24 @@ function initializeMainApp() {
 
                 // Save to localStorage so it persists in the session
                 localStorage.setItem('helpnote_username', newName);
+                
+                // Save Avatar if it was changed
+                if (profileAvatarImg.src.startsWith('data:image')) {
+                    localStorage.setItem('helpnote_avatar', profileAvatarImg.src);
+                }
             }
         });
     }
 
-    // Initial load of username
+    // Initial load of username and avatar
     const savedName = localStorage.getItem('helpnote_username');
+    const savedAvatar = localStorage.getItem('helpnote_avatar');
+
+    if (savedAvatar) {
+        if (profileAvatarImg) profileAvatarImg.src = savedAvatar;
+        updateSidebarAvatar(savedAvatar);
+    }
+
     if (savedName && userNameInput) {
         userNameInput.value = savedName;
         // Trigger greeting update if on dashboard

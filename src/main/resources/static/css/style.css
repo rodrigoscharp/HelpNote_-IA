@@ -183,6 +183,17 @@ button {
     display: flex;
     align-items: center;
     justify-content: center;
+    overflow: hidden;
+}
+
+.avatar i.hidden, .sidebar-avatar-img.hidden {
+    display: none;
+}
+
+.sidebar-avatar-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
 }
 
 .user-info {

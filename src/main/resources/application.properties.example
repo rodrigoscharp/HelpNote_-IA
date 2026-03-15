@@ -1,0 +1,19 @@
+spring.application.name=Helpnote IA
+upload.dir=./uploads
+
+# PostgreSQL Datasource Configuration
+spring.datasource.url=jdbc:postgresql://localhost:5432/YOUR_DATABASE_NAME
+spring.datasource.username=YOUR_USERNAME
+spring.datasource.password=YOUR_PASSWORD
+spring.datasource.driver-class-name=org.postgresql.Driver
+
+# JPA/Hibernate Configuration
+spring.jpa.hibernate.ddl-auto=update
+spring.jpa.show-sql=true
+
+# Spring AI - Groq
+# Obtenha sua chave gratuita em: https://console.groq.com/keys
+spring.ai.openai.api-key=YOUR_GROQ_API_KEY
+spring.ai.openai.base-url=https://api.groq.com/openai
+spring.ai.openai.chat.base-url=https://api.groq.com/openai
+spring.ai.openai.chat.options.model=llama-3.3-70b-versatile

@@ -151,7 +151,21 @@
                                     <p>Quando você pausa a digitação, a IA sugere continuações da sua frase. Pressione a
                                         tecla <b>Tab</b> para aceitar a sugestão.</p>
                                 </div>
-                            </div>
+
+                                <div class="insight-box correction-box hidden" id="correctionPanel">
+                                    <h5><i class="fa-solid fa-spell-check"></i> Correção Sugerida</h5>
+                                    <div class="correction-preview" id="correctionPreview">
+                                        <!-- Diff will be rendered here -->
+                                    </div>
+                                    <div class="correction-actions">
+                                        <button class="correction-btn apply" id="applyCorrectionBtn">
+                                            <i class="fa-solid fa-check"></i> Aplicar
+                                        </button>
+                                        <button class="correction-btn dismiss" id="dismissCorrectionBtn">
+                                            <i class="fa-solid fa-xmark"></i> Ignorar
+                                        </button>
+                                    </div>
+                                </div>
                         </div>
                     </section>
                 </div>

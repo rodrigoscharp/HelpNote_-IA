@@ -6,6 +6,7 @@ public class AiSuggestionResponse {
 
     private List<String> keywords;
     private String suggestedCompletion;
+    private String correctedText;
 
     public AiSuggestionResponse() {
     }
@@ -29,5 +30,13 @@ public class AiSuggestionResponse {
 
     public void setSuggestedCompletion(String suggestedCompletion) {
         this.suggestedCompletion = suggestedCompletion;
+    }
+
+    public String getCorrectedText() {
+        return correctedText;
+    }
+
+    public void setCorrectedText(String correctedText) {
+        this.correctedText = correctedText;
     }
 }

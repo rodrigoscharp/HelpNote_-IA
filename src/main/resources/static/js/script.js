@@ -392,7 +392,7 @@ function initializeMainApp() {
             }, 1000);
         }
     }
-    // --- History System Logic ---
+    // Unified History Logic
     const statsAtas = document.getElementById('statsAtas');
     const statsNotes = document.getElementById('statsNotes');
     const historyOverlay = document.getElementById('historyOverlay');
@@ -400,9 +400,17 @@ function initializeMainApp() {
     const historyList = document.getElementById('historyList');
     const historySearchInput = document.getElementById('historySearchInput');
     const filterTabs = document.querySelectorAll('.filter-tab');
+    const historyMenuLink = document.getElementById('historyMenuLink');
 
-    // Mock Data for History
-    const historyData = [
+    if (historyMenuLink) {
+        historyMenuLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            openHistory('all');
+        });
+    }
+
+    // Mock Data for History (Pre-existing/Fallbacks)
+    let historyData = [
         { id: 1, type: 'ata', title: 'Reunião de Alinhamento Q1', date: '21/02/2026', preview: 'Discussão sobre metas de faturamento e expansão.' },
         { id: 2, type: 'note', title: 'Ideias para o Design da Home', date: '20/02/2026', preview: 'Explorar glassmorphism e cores vibrantes.' },
         { id: 3, type: 'ata', title: 'Daily Scrum - Dev Team', date: '19/02/2026', preview: 'Impedimentos no gateway de pagamento resolvidos.' },
@@ -419,7 +427,7 @@ function initializeMainApp() {
     if (statsNotes) statsNotes.addEventListener('click', () => openHistory('note'));
     if (closeHistoryBtn) closeHistoryBtn.addEventListener('click', () => historyOverlay.classList.add('hidden'));
 
-    function openHistory(filter = 'all') {
+    async function openHistory(filter = 'all') {
         currentFilter = filter;
         historyOverlay.classList.remove('hidden');
 
@@ -428,7 +436,30 @@ function initializeMainApp() {
             tab.classList.toggle('active', tab.dataset.filter === filter);
         });
 
+        await fetchHistory();
         renderHistory();
+    }
+
+    async function fetchHistory() {
+        try {
+            const response = await fetch('/api/notes');
+            if (response.ok) {
+                const realNotes = await response.json();
+                // Map real notes to history item format
+                const mappedNotes = realNotes.map(n => ({
+                    id: n.id,
+                    type: n.audioFilePath ? 'ata' : 'note',
+                    title: n.title || 'Sem Título',
+                    date: new Date(n.uploadDateTime).toLocaleDateString('pt-BR'),
+                    preview: n.content ? (n.content.substring(0, 50) + '...') : (n.transcription ? n.transcription.substring(0, 50) + '...' : 'Sem conteúdo')
+                }));
+                
+                // Merge with fallback data if needed, or just use real notes
+                historyData = mappedNotes;
+            }
+        } catch (error) {
+            console.error("Erro ao carregar histórico global:", error);
+        }
     }
 
     function renderHistory() {
@@ -459,7 +490,38 @@ function initializeMainApp() {
                 </div>
             `;
             div.addEventListener('click', () => {
-                alert(`Abrindo: ${item.title}`);
+                if (window.location.pathname.includes('smart-notepad.html')) {
+                    if (item.type === 'note') {
+                        // Load into the smart editor
+                        const noteTitle = document.getElementById('noteTitle');
+                        const smartEditor = document.getElementById('smartEditor');
+                        if (noteTitle) noteTitle.value = item.title;
+                        if (smartEditor) {
+                            // We need the full original note object to get full content
+                            // For now we'll fetch just this note or use a broader fetch
+                            fetch(`/api/notes/${item.id}`)
+                                .then(res => res.json())
+                                .then(note => {
+                                    smartEditor.value = note.content || "";
+                                    smartEditor.dispatchEvent(new Event('input'));
+                                });
+                        }
+                    } else {
+                        // It's an ATA, maybe redirect or alert (scope limit)
+                        alert(`Esta é uma ATA de Reunião. Redirecionando para o painel principal...`);
+                        window.location.href = 'index.html#recordings';
+                    }
+                } else {
+                    // On Dashboard (index.html)
+                    if (item.type === 'ata') {
+                        // Scroll to recordings and highlight?
+                        window.location.hash = 'recordings';
+                        historyOverlay.classList.add('hidden');
+                    } else {
+                        // It's a note, redirect to notepad
+                        window.location.href = 'smart-notepad.html';
+                    }
+                }
                 historyOverlay.classList.add('hidden');
             });
             historyList.appendChild(div);

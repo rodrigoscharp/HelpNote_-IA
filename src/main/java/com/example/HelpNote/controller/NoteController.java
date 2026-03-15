@@ -48,4 +48,11 @@ public class NoteController {
     public ResponseEntity<java.util.List<Note>> getAllNotes() {
         return new ResponseEntity<>(noteService.getAllNotesSorted(), HttpStatus.OK);
     }
+
+    @org.springframework.web.bind.annotation.GetMapping("/{id}")
+    public ResponseEntity<Note> getNote(@org.springframework.web.bind.annotation.PathVariable("id") Long id) {
+        return noteService.getNoteById(id)
+                .map(note -> new ResponseEntity<>(note, HttpStatus.OK))
+                .orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));
+    }
 }

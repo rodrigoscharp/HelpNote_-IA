@@ -88,6 +88,10 @@ public class NoteService {
         return noteRepository.save(note);
     }
 
+    public java.util.Optional<Note> getNoteById(Long id) {
+        return noteRepository.findById(id);
+    }
+
     public java.util.List<Note> getAllNotesSorted() {
         return noteRepository.findAllByOrderByUploadDateTimeDesc();
     }

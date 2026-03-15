@@ -40,6 +40,10 @@
                     <i class="fa-solid fa-clipboard-list"></i>
                     <span>ATA de reuniões</span>
                 </a>
+                <a href="#" id="historyMenuLink" class="nav-item">
+                    <i class="fa-solid fa-clock-rotate-left"></i>
+                    <span>Histórico</span>
+                </a>
                 <a href="#" class="nav-item">
                     <i class="fa-solid fa-gear"></i>
                     <span>Configurações</span>
@@ -189,6 +193,34 @@
         </main>
     </div>
 
+    <!-- History Overlay -->
+    <div id="historyOverlay" class="history-overlay hidden">
+        <div class="history-container">
+            <div class="history-header">
+                <h2>Histórico do HelpNote</h2>
+                <button id="closeHistoryBtn" class="close-overlay-btn"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <div class="history-toolbar">
+                <div class="search-box">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <input type="text" id="historySearchInput" placeholder="Pesquisar no histórico...">
+                </div>
+                <div class="filter-tabs">
+                    <button class="filter-tab active" data-filter="all">Tudo</button>
+                    <button class="filter-tab" data-filter="ata">Atas</button>
+                    <button class="filter-tab" data-filter="note">Anotações</button>
+                </div>
+            </div>
+
+            <div id="historyList" class="history-list">
+                <!-- History Items will be injected here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Main script for common UI components (sidebar, overlays) -->
+    <script src="js/script.js"></script>
     <!-- The custom javascript piece for the notepad -->
     <script src="js/notepad.js"></script>
 </body>

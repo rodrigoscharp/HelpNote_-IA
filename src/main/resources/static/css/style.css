@@ -1179,7 +1179,7 @@ button {
 }
 
 .highlights mark {
-    background-color: rgba(99, 102, 241, 0.15);
+    background-color: transparent;
     color: transparent;
     border-radius: 4px;
     padding: 0 1px;

@@ -160,6 +160,9 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // Initial load of history
+    loadHistory();
+
     // Dismiss Correction Button
     if (dismissCorrectionBtn) {
         dismissCorrectionBtn.addEventListener('click', () => {
@@ -197,6 +200,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (response.ok) {
                     const saveStatus = document.getElementById('saveStatus');
                     if (saveStatus) saveStatus.textContent = 'Salvo com sucesso! ✓';
+                    // Refresh history
+                    loadHistory();
                     setTimeout(() => {
                         if (saveStatus) saveStatus.textContent = 'Rascunho salvo';
                     }, 3000);
@@ -383,5 +388,65 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Sync scroll
         backdrop.scrollTop = editor.scrollTop;
+    }
+
+    async function loadHistory() {
+        const historyList = document.getElementById('notesHistoryList');
+        if (!historyList) return;
+
+        try {
+            const response = await fetch('/api/notes');
+            if (response.ok) {
+                const notes = await response.json();
+                renderHistory(notes);
+            }
+        } catch (error) {
+            console.error("Erro ao carregar histórico:", error);
+        }
+    }
+
+    function renderHistory(notes) {
+        const historyList = document.getElementById('notesHistoryList');
+        if (!historyList) return;
+
+        if (!notes || notes.length === 0) {
+            historyList.innerHTML = '<div class="empty-state"><p>Nenhuma nota salva ainda.</p></div>';
+            return;
+        }
+
+        historyList.innerHTML = '';
+        notes.forEach(note => {
+            const date = new Date(note.uploadDateTime).toLocaleDateString('pt-BR', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+
+            const card = document.createElement('div');
+            card.className = 'note-card';
+            card.style.padding = '12px';
+            card.style.marginBottom = '8px';
+            card.style.fontSize = '0.9rem';
+            
+            card.innerHTML = `
+                <div class="note-icon" style="width: 32px; height: 32px; font-size: 0.8rem;">
+                    <i class="fa-solid fa-file-lines"></i>
+                </div>
+                <div class="note-details">
+                    <h4 style="font-size: 0.9rem; margin-bottom: 2px;">${note.title || 'Sem Título'}</h4>
+                    <span class="note-meta" style="font-size: 0.75rem;">${date}</span>
+                </div>
+            `;
+            
+            card.addEventListener('click', () => {
+                document.getElementById('noteTitle').value = note.title;
+                editor.value = note.content;
+                editor.dispatchEvent(new Event('input'));
+            });
+
+            historyList.appendChild(card);
+        });
     }
 });

@@ -77,4 +77,8 @@ public class NoteService {
         Note note = new Note(title, filePath.toString(), LocalDateTime.now());
         return noteRepository.save(note);
     }
+
+    public java.util.List<Note> getAllNotesSorted() {
+        return noteRepository.findAllByOrderByUploadDateTimeDesc();
+    }
 }

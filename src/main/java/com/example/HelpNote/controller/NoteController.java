@@ -43,4 +43,9 @@ public class NoteController {
         Note savedNote = noteService.saveTextNote(title, content);
         return new ResponseEntity<>(savedNote, HttpStatus.CREATED);
     }
+
+    @org.springframework.web.bind.annotation.GetMapping
+    public ResponseEntity<java.util.List<Note>> getAllNotes() {
+        return new ResponseEntity<>(noteService.getAllNotesSorted(), HttpStatus.OK);
+    }
 }

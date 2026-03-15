@@ -84,6 +84,9 @@ function initializeMainApp() {
         });
     }
 
+    // Initial load of history/stats
+    fetchHistory();
+
     // 1. Setup File Upload Drag & Drop Styling
     const dropzone = document.getElementById('uploadDropzone');
     const fileInput = document.getElementById('fileInput');
@@ -454,11 +457,30 @@ function initializeMainApp() {
                     preview: n.content ? (n.content.substring(0, 50) + '...') : (n.transcription ? n.transcription.substring(0, 50) + '...' : 'Sem conteúdo')
                 }));
                 
+                
                 // Merge with fallback data if needed, or just use real notes
                 historyData = mappedNotes;
+
+                // Update Dashboard Statistics
+                updateDashboardStats(mappedNotes);
             }
         } catch (error) {
             console.error("Erro ao carregar histórico global:", error);
+        }
+    }
+
+    function updateDashboardStats(notes) {
+        const totalAtasCount = document.getElementById('totalAtasCount');
+        const totalNotesCount = document.getElementById('totalNotesCount');
+
+        if (totalAtasCount) {
+            const atasCount = notes.filter(n => n.type === 'ata').length;
+            totalAtasCount.textContent = atasCount;
+        }
+
+        if (totalNotesCount) {
+            const notesCount = notes.filter(n => n.type === 'note').length;
+            totalNotesCount.textContent = notesCount;
         }
     }
 

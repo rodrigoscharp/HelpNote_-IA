@@ -31,6 +31,7 @@ public class NoteService {
     }
 
     public Note saveTextNote(String title, String content) {
+        System.out.println("Salvando nota de texto: " + title);
         Note note = new Note();
         note.setTitle(title);
         note.setContent(content);
@@ -49,9 +50,18 @@ public class NoteService {
         } catch (Exception e) {
             // Log error but save note anyway
             System.err.println("Erro ao processar IA para nota: " + e.getMessage());
+            e.printStackTrace();
         }
 
-        return noteRepository.save(note);
+        try {
+            Note savedNote = noteRepository.save(note);
+            System.out.println("Nota salva com ID: " + savedNote.getId());
+            return savedNote;
+        } catch (Exception e) {
+            System.err.println("ERRO CRÍTICO ao salvar nota no banco: " + e.getMessage());
+            e.printStackTrace();
+            throw e;
+        }
     }
 
     public Note saveAudioFile(MultipartFile audioFile, String title) throws IOException {

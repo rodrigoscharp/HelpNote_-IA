@@ -13,9 +13,12 @@ public class Note {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     private String title;
+    @jakarta.persistence.Column(columnDefinition = "TEXT")
     private String content; // New field for text-based notes
     private String audioFilePath;
+    @jakarta.persistence.Column(columnDefinition = "TEXT")
     private String transcription;
+    @jakarta.persistence.Column(columnDefinition = "TEXT")
     private String summary;
     private String keywords;
     private LocalDateTime uploadDateTime;

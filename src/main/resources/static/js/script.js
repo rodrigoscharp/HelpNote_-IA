@@ -436,7 +436,7 @@ function initializeMainApp() {
         params.append('transcription', transcription);
 
         try {
-            const response = await fetch('/api/notes/meeting', {
+            const response = await fetch('/api/atas', {
                 method: 'POST',
                 body: params
             });
@@ -463,7 +463,7 @@ function initializeMainApp() {
         if (!recentRecordingsList) return;
 
         try {
-            const response = await fetch('/api/notes/atas');
+            const response = await fetch('/api/atas');
             if (response.ok) {
                 const atas = await response.json();
                 renderRecentRecordings(atas);
@@ -500,9 +500,9 @@ function initializeMainApp() {
 
         try {
             // First try Atas endpoint
-            let response = await fetch(`/api/notes/atas/${noteId}`);
+            let response = await fetch(`/api/atas/${noteId}`);
             if (!response.ok) {
-                // Try regular Notes as fallback
+                // Try regular Notes as fallback (unlikely for Atas, but kept for compatibility)
                 response = await fetch(`/api/notes/${noteId}`);
             }
             
@@ -522,7 +522,7 @@ function initializeMainApp() {
     if (downloadPdfBtn) {
         downloadPdfBtn.addEventListener('click', () => {
             if (currentOpenAtaId) {
-                window.location.href = `/api/notes/${currentOpenAtaId}/pdf`;
+                window.location.href = `/api/atas/${currentOpenAtaId}/pdf`;
             }
         });
     }
@@ -654,7 +654,7 @@ function initializeMainApp() {
         try {
             const [notesRes, atasRes] = await Promise.all([
                 fetch('/api/notes'),
-                fetch('/api/notes/atas')
+                fetch('/api/atas')
             ]);
 
             const notes = notesRes.ok ? await notesRes.json() : [];

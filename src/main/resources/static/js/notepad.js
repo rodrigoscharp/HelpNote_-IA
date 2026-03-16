@@ -80,6 +80,9 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentSuggestion = "";
     let currentKeywords = [];
     let currentCorrectedText = "";
+    let currentParagraphStart = 0;
+    let currentParagraphEnd = 0;
+    let currentParagraphContent = "";
 
     let isRequesting = false;
     let lastProcessedText = "";
@@ -142,8 +145,14 @@ document.addEventListener('DOMContentLoaded', () => {
     if (applyCorrectionBtn) {
         applyCorrectionBtn.addEventListener('click', () => {
             if (currentCorrectedText) {
-                editor.value = currentCorrectedText;
-                lastProcessedText = currentCorrectedText;
+                const fullText = editor.value;
+                const beforeParagraph = fullText.substring(0, currentParagraphStart);
+                const afterParagraph = fullText.substring(currentParagraphEnd);
+                
+                // Replace ONLY the current paragraph with the corrected version
+                editor.value = beforeParagraph + currentCorrectedText + afterParagraph;
+                
+                lastProcessedText = editor.value;
                 currentCorrectedText = "";
                 hideCorrectionPanel();
 
@@ -156,6 +165,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 setTimeout(() => {
                     aiStatus.textContent = "Sincronizado";
                 }, 2000);
+
+                // Update backdrop to reflect changes
+                updateBackdrop();
             }
         });
     }
@@ -238,8 +250,36 @@ document.addEventListener('DOMContentLoaded', () => {
     async function fetchAiSuggestions() {
         if (isRequesting) return;
 
-        const currentText = editor.value;
-        if (!currentText || currentText.trim().length === 0) return;
+        const fullText = editor.value;
+        const selectionStart = editor.selectionStart;
+
+        // Find current paragraph boundaries based on cursor position
+        // We look for double newlines (paragraphs) or single newlines if they're used as paragraph breaks
+        let start = fullText.lastIndexOf('\n\n', selectionStart - 1);
+        if (start === -1) {
+            start = 0;
+        } else {
+            start += 2; // Move past the double newline
+        }
+
+        let end = fullText.indexOf('\n\n', selectionStart);
+        if (end === -1) {
+            end = fullText.length;
+        }
+
+        const paragraphText = fullText.substring(start, end).trim();
+        
+        // Save indices for later replacement if user applies correction
+        currentParagraphStart = start;
+        currentParagraphEnd = end;
+        currentParagraphContent = paragraphText;
+
+        if (!paragraphText || paragraphText.length < 3) {
+            resetSidebar();
+            currentKeywords = [];
+            updateBackdrop();
+            return;
+        }
 
         isRequesting = true;
 
@@ -251,7 +291,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ text: currentText, title: title })
+                body: JSON.stringify({ text: paragraphText, title: title })
             });
 
             if (response.ok) {
@@ -279,10 +319,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 // Show correction panel if text was corrected
                 if (data.correctedText && data.correctedText.trim().length > 0 
-                    && data.correctedText !== currentText 
-                    && data.correctedText.trim() !== currentText.trim()) {
+                    && data.correctedText !== paragraphText 
+                    && data.correctedText.trim() !== paragraphText.trim()) {
                     currentCorrectedText = data.correctedText;
-                    showCorrectionPanel(currentText, currentCorrectedText);
+                    showCorrectionPanel(paragraphText, currentCorrectedText);
                 } else {
                     hideCorrectionPanel();
                 }

@@ -88,6 +88,15 @@ function initializeMainApp() {
     fetchHistory();
 
     // 1. Setup File Upload Drag & Drop Styling
+    // Link "Ver todas" to history
+    const viewAllLinks = document.querySelectorAll('.view-all');
+    viewAllLinks.forEach(link => {
+        link.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (typeof openHistory === 'function') openHistory('all');
+        });
+    });
+
     const dropzone = document.getElementById('uploadDropzone');
     const fileInput = document.getElementById('fileInput');
     const progressContainer = document.getElementById('uploadProgress');
@@ -296,6 +305,44 @@ function initializeMainApp() {
     let startTime;
     let timerInterval;
 
+    // Speech Recognition for real-time transcription
+    let recognition;
+    let finalTranscript = "";
+    const liveTranscriptText = document.getElementById('liveTranscriptText');
+    const liveTranscriptContainer = document.getElementById('liveTranscript');
+    const recentRecordingsList = document.getElementById('recentRecordingsList');
+
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        recognition = new SpeechRecognition();
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        recognition.lang = 'pt-BR';
+
+        recognition.onresult = (event) => {
+            let interimTranscript = "";
+            for (let i = event.resultIndex; i < event.results.length; ++i) {
+                if (event.results[i].isFinal) {
+                    finalTranscript += event.results[i][0].transcript + " ";
+                } else {
+                    interimTranscript += event.results[i][0].transcript;
+                }
+            }
+
+            if (liveTranscriptText) {
+                liveTranscriptText.innerHTML = `<b>${finalTranscript}</b><span style="opacity: 0.7">${interimTranscript}</span>`;
+                // Auto-scroll to bottom
+                if (liveTranscriptContainer) {
+                    liveTranscriptContainer.scrollTop = liveTranscriptContainer.scrollHeight;
+                }
+            }
+        };
+
+        recognition.onerror = (event) => {
+            console.error("Speech recognition error:", event.error);
+        };
+    }
+
     if (startNewMeetingBtn) {
         startNewMeetingBtn.addEventListener('click', async () => {
             try {
@@ -310,14 +357,25 @@ function initializeMainApp() {
                 mediaRecorder.onstop = async () => {
                     // Stop all tracks
                     stream.getTracks().forEach(track => track.stop());
-
-                    // In a real app, we'd upload the blob. 
-                    // Here we trigger the "simulation" flow.
-                    simulateSuccessfulRecording();
+                    
+                    // The actual saving is now handled in the stop button click
+                    // to ensure we use the latest transcript.
                 };
 
                 recorderOverlay.classList.remove('hidden');
                 mediaRecorder.start();
+                
+                // Start Speech Recognition
+                if (recognition) {
+                    finalTranscript = "";
+                    if (liveTranscriptText) liveTranscriptText.innerHTML = "Ouvindo...";
+                    try {
+                        recognition.start();
+                    } catch (e) {
+                        console.warn("Recognition already started or error:", e);
+                    }
+                }
+                
                 startTimer();
             } catch (err) {
                 console.error("Erro ao acessar microfone:", err);
@@ -327,24 +385,206 @@ function initializeMainApp() {
     }
 
     if (stopRecordingBtn) {
-        stopRecordingBtn.addEventListener('click', () => {
+        stopRecordingBtn.addEventListener('click', async () => {
             if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                // Change button state
+                const originalText = stopRecordingBtn.innerHTML;
+                stopRecordingBtn.disabled = true;
+                stopRecordingBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Salvando...';
+
                 mediaRecorder.stop();
+                
+                // Stop Speech Recognition
+                if (recognition) {
+                    recognition.stop();
+                }
+
+                // Get transcription from UI as a backup to finalTranscript
+                let transcriptToSave = finalTranscript.trim();
+                const uiTranscript = liveTranscriptText ? liveTranscriptText.innerText.trim() : "";
+                
+                // If finalTranscript is empty but UI has text, use UI text
+                if (transcriptToSave.length < 5 && uiTranscript.length > transcriptToSave.length) {
+                    transcriptToSave = uiTranscript;
+                }
+
+                console.log("Iniciando salvamento da transcrição:", transcriptToSave.substring(0, 50) + "...");
+                
+                await saveMeetingTranscription(transcriptToSave);
+
                 stopTimer();
                 recorderOverlay.classList.add('hidden');
+                
+                // Reset button
+                stopRecordingBtn.disabled = false;
+                stopRecordingBtn.innerHTML = originalText;
             }
         });
     }
+
+    async function saveMeetingTranscription(transcription) {
+        if (!transcription || transcription.trim() === "" || transcription === "Ouvindo..." || transcription === "Aguardando áudio para transcrever...") {
+            console.warn("Transcrição vazia ou inválida, ignorando salvamento.");
+            return;
+        }
+
+        const title = `Ata de Reunião - ${new Date().toLocaleString('pt-BR')}`;
+        console.log("Enviando POST para /api/notes/meeting com título:", title);
+        
+        const params = new URLSearchParams();
+        params.append('title', title);
+        params.append('transcription', transcription);
+
+        try {
+            const response = await fetch('/api/notes/meeting', {
+                method: 'POST',
+                body: params
+            });
+
+            if (response.ok) {
+                const savedNote = await response.json();
+                console.log("Ata salva com sucesso! ID:", savedNote.id);
+                
+                // Show a small toast or scroll
+                loadRecentRecordings();
+                if (typeof fetchHistory === 'function') fetchHistory();
+            } else {
+                const errorText = await response.text();
+                console.error("Erro ao salvar ata. Status:", response.status, "Mensagem:", errorText);
+                alert("Erro ao salvar ata no servidor. Verifique o console.");
+            }
+        } catch (error) {
+            console.error("Erro na requisição de salvamento:", error);
+            alert("Erro de conexão ao tentar salvar. Verifique se o servidor está rodando.");
+        }
+    }
+
+    async function loadRecentRecordings() {
+        if (!recentRecordingsList) return;
+
+        try {
+            const response = await fetch('/api/notes/atas');
+            if (response.ok) {
+                const atas = await response.json();
+                renderRecentRecordings(atas);
+            }
+        } catch (error) {
+            console.error("Erro ao carregar gravações (atas):", error);
+        }
+    }
+
+    // Modal elements
+    const ataDetailOverlay = document.getElementById('ataDetailOverlay');
+    const closeAtaDetailBtn = document.getElementById('closeAtaDetailBtn');
+    const downloadPdfBtn = document.getElementById('downloadPdfBtn');
+    
+    if (closeAtaDetailBtn) {
+        closeAtaDetailBtn.addEventListener('click', () => {
+            ataDetailOverlay.classList.add('hidden');
+        });
+    }
+
+    let currentOpenAtaId = null;
+
+    async function openAtaDetail(noteId) {
+        if (!ataDetailOverlay) return;
+
+        currentOpenAtaId = noteId;
+        ataDetailOverlay.classList.remove('hidden');
+        
+        // Reset modal content
+        document.getElementById('ataDetailTitle').textContent = "Carregando...";
+        document.getElementById('ataDetailDate').innerHTML = '<i class="fa-regular fa-calendar"></i> Carregando...';
+        document.getElementById('ataDetailSummary').innerHTML = '<p>Carregando resumo...</p>';
+        document.getElementById('ataDetailTranscription').innerHTML = '<p>Carregando transcrição...</p>';
+
+        try {
+            // First try Atas endpoint
+            let response = await fetch(`/api/notes/atas/${noteId}`);
+            if (!response.ok) {
+                // Try regular Notes as fallback
+                response = await fetch(`/api/notes/${noteId}`);
+            }
+            
+            if (response.ok) {
+                const note = await response.json();
+                document.getElementById('ataDetailTitle').textContent = note.title;
+                const date = new Date(note.uploadDateTime);
+                document.getElementById('ataDetailDate').innerHTML = `<i class="fa-regular fa-calendar"></i> ${date.toLocaleString()}`;
+                document.getElementById('ataDetailSummary').innerHTML = `<p>${note.summary || "Resumo ainda não processado pela IA."}</p>`;
+                document.getElementById('ataDetailTranscription').innerHTML = `<p>${(note.transcription || "Sem transcrição.").replace(/\n/g, '<br>')}</p>`;
+            }
+        } catch (error) {
+            console.error("Erro ao carregar detalhes da ata:", error);
+        }
+    }
+
+    if (downloadPdfBtn) {
+        downloadPdfBtn.addEventListener('click', () => {
+            if (currentOpenAtaId) {
+                window.location.href = `/api/notes/${currentOpenAtaId}/pdf`;
+            }
+        });
+    }
+
+    function renderRecentRecordings(notes) {
+        if (!recentRecordingsList) return;
+
+        // Filter for notes that are "Atas" (must have transcription)
+        const atas = notes.filter(note => note.transcription && note.transcription.trim() !== "");
+
+        if (atas.length === 0) {
+            recentRecordingsList.innerHTML = '<div class="empty-state"><p>Nenhuma ata recente.</p></div>';
+            return;
+        }
+
+        recentRecordingsList.innerHTML = '';
+        // Show only the 3 most recent Atas
+        atas.slice(0, 3).forEach(note => {
+            const date = new Date(note.uploadDateTime);
+            const formattedDate = date.toLocaleString();
+            
+            const card = document.createElement('div');
+            card.className = 'note-card';
+            card.innerHTML = `
+                <div class="note-icon"><i class="fa-solid fa-microphone"></i></div>
+                <div class="note-details">
+                    <h4>${note.title}</h4>
+                    <span class="note-meta">${formattedDate}</span>
+                </div>
+                <div class="note-status success">
+                    ${note.transcription ? 'Transcrito' : 'Salvo'}
+                </div>
+                <button class="action-btn"><i class="fa-solid fa-ellipsis-vertical"></i></button>
+            `;
+            
+            card.onclick = () => {
+                openAtaDetail(note.id);
+            };
+            
+            recentRecordingsList.appendChild(card);
+        });
+    }
+
+    // Initial load
+    loadRecentRecordings();
 
     if (cancelRecordingBtn) {
         cancelRecordingBtn.addEventListener('click', () => {
             if (mediaRecorder && mediaRecorder.state !== 'inactive') {
                 mediaRecorder.stop();
+                
+                // Stop Speech Recognition
+                if (recognition) {
+                    recognition.stop();
+                }
+
                 stopTimer();
                 recorderOverlay.classList.add('hidden');
                 audioChunks = []; // discard
             } else {
                 recorderOverlay.classList.add('hidden');
+                if (recognition) recognition.stop();
             }
         });
     }
@@ -370,31 +610,7 @@ function initializeMainApp() {
         return [hours, minutes, seconds].map(v => v < 10 ? "0" + v : v).join(":");
     }
 
-    function simulateSuccessfulRecording() {
-        // Show a fake loading/processing state for transcription
-        const recordingsSection = document.getElementById('recordingsSection');
-        if (recordingsSection) {
-            recordingsSection.scrollIntoView({ behavior: 'smooth' });
-
-            // For demo: pretend we added a new card and it just finished transcribing
-            setTimeout(() => {
-                const firstCard = recordingsSection.querySelector('.note-card');
-                if (firstCard) {
-                    firstCard.click();
-                    setTimeout(() => {
-                        const ataBtn = document.getElementById('generateAtaBtn');
-                        if (ataBtn) {
-                            ataBtn.click();
-                            // Optional: Alert the user that ATA is being generated
-                            const originalText = ataBtn.innerHTML;
-                            ataBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Gerando ATA...';
-                            setTimeout(() => ataBtn.innerHTML = originalText, 2000);
-                        }
-                    }, 800);
-                }
-            }, 1000);
-        }
-    }
+    // --- End of Meeting Recorder Logic ---
     // Unified History Logic
     const statsAtas = document.getElementById('statsAtas');
     const statsNotes = document.getElementById('statsNotes');
@@ -413,16 +629,7 @@ function initializeMainApp() {
     }
 
     // Mock Data for History (Pre-existing/Fallbacks)
-    let historyData = [
-        { id: 1, type: 'ata', title: 'Reunião de Alinhamento Q1', date: '21/02/2026', preview: 'Discussão sobre metas de faturamento e expansão.' },
-        { id: 2, type: 'note', title: 'Ideias para o Design da Home', date: '20/02/2026', preview: 'Explorar glassmorphism e cores vibrantes.' },
-        { id: 3, type: 'ata', title: 'Daily Scrum - Dev Team', date: '19/02/2026', preview: 'Impedimentos no gateway de pagamento resolvidos.' },
-        { id: 4, type: 'note', title: 'Estudos de Java Moderno', date: '18/02/2026', preview: 'Anotações sobre Records e Sealed Classes.' },
-        { id: 5, type: 'ata', title: 'Entrevista: Candidato UX Design', date: '15/02/2026', preview: 'Avaliação técnica e portfólio de interfaces móveis.' },
-        { id: 6, type: 'note', title: 'Lista de Compras Escritório', date: '14/02/2026', preview: 'Monitor, teclado mecânico e café.' },
-        { id: 7, type: 'ata', title: 'Workshop de IA Generativa', date: '10/02/2026', preview: 'Exploração de APIs da Google DeepMind.' },
-        { id: 8, type: 'note', title: 'Roteiro de Viagem Férias', date: '05/02/2026', preview: 'Destinos: Lisboa, Porto e Algarve.' }
-    ];
+    let historyData = [];
 
     let currentFilter = 'all';
 
@@ -445,25 +652,34 @@ function initializeMainApp() {
 
     async function fetchHistory() {
         try {
-            const response = await fetch('/api/notes');
-            if (response.ok) {
-                const realNotes = await response.json();
-                // Map real notes to history item format
-                const mappedNotes = realNotes.map(n => ({
-                    id: n.id,
-                    type: n.audioFilePath ? 'ata' : 'note',
-                    title: n.title || 'Sem Título',
-                    date: new Date(n.uploadDateTime).toLocaleDateString('pt-BR'),
-                    preview: n.content ? (n.content.substring(0, 50) + '...') : (n.transcription ? n.transcription.substring(0, 50) + '...' : 'Sem conteúdo')
-                }));
-                
-                
-                // Merge with fallback data if needed, or just use real notes
-                historyData = mappedNotes;
+            const [notesRes, atasRes] = await Promise.all([
+                fetch('/api/notes'),
+                fetch('/api/notes/atas')
+            ]);
 
-                // Update Dashboard Statistics
-                updateDashboardStats(mappedNotes);
-            }
+            const notes = notesRes.ok ? await notesRes.json() : [];
+            const atas = atasRes.ok ? await atasRes.json() : [];
+
+            const mappedNotes = notes.map(n => ({
+                id: n.id,
+                type: 'note',
+                title: n.title || 'Sem Título',
+                date: new Date(n.uploadDateTime).toLocaleDateString('pt-BR'),
+                preview: n.content ? (n.content.substring(0, 50) + '...') : 'Sem conteúdo',
+                fullDate: new Date(n.uploadDateTime)
+            }));
+
+            const mappedAtas = atas.map(a => ({
+                id: a.id,
+                type: 'ata',
+                title: a.title || 'Sem Título',
+                date: new Date(a.uploadDateTime).toLocaleDateString('pt-BR'),
+                preview: a.transcription ? a.transcription.substring(0, 50) + '...' : 'Sem transcrição',
+                fullDate: new Date(a.uploadDateTime)
+            }));
+
+            historyData = [...mappedNotes, ...mappedAtas].sort((a, b) => b.fullDate - a.fullDate);
+            updateDashboardStats(historyData);
         } catch (error) {
             console.error("Erro ao carregar histórico global:", error);
         }
@@ -536,9 +752,7 @@ function initializeMainApp() {
                 } else {
                     // On Dashboard (index.html)
                     if (item.type === 'ata') {
-                        // Scroll to recordings and highlight?
-                        window.location.hash = 'recordings';
-                        historyOverlay.classList.add('hidden');
+                        openAtaDetail(item.id);
                     } else {
                         // It's a note, redirect to notepad
                         window.location.href = 'smart-notepad.html';

@@ -145,7 +145,7 @@
                         <!-- Recent Files -->
                         <section id="recordingsSection" class="recent-recordings">
                             <div class="section-header">
-                                <h3>Gravações Recentes</h3>
+                                <h3>Atas geradas recentemente</h3>
                                 <div class="header-actions">
                                     <button id="startNewMeetingBtn" class="primary-btn sm">
                                         <i class="fa-solid fa-microphone-lines"></i> Nova Reunião
@@ -154,44 +154,10 @@
                                 </div>
                             </div>
 
-                            <div class="notes-list">
-                                <!-- Note 1 -->
-                                <div class="note-card">
-                                    <div class="note-icon"><i class="fa-solid fa-microphone"></i></div>
-                                    <div class="note-details">
-                                        <h4>Reunião de Planejamento Q3</h4>
-                                        <span class="note-meta">Hoje às 10:30 • 45 min</span>
-                                    </div>
-                                    <div class="note-status success">
-                                        Transcrito
-                                    </div>
-                                    <button class="action-btn"><i class="fa-solid fa-ellipsis-vertical"></i></button>
-                                </div>
-
-                                <!-- Note 2 -->
-                                <div class="note-card">
-                                    <div class="note-icon"><i class="fa-solid fa-microphone"></i></div>
-                                    <div class="note-details">
-                                        <h4>Ideias para o novo Produto</h4>
-                                        <span class="note-meta">Ontem às 15:45 • 12 min</span>
-                                    </div>
-                                    <div class="note-status success">
-                                        Transcrito
-                                    </div>
-                                    <button class="action-btn"><i class="fa-solid fa-ellipsis-vertical"></i></button>
-                                </div>
-
-                                <!-- Note 3 -->
-                                <div class="note-card">
-                                    <div class="note-icon processing"><i class="fa-solid fa-spinner fa-spin"></i></div>
-                                    <div class="note-details">
-                                        <h4>Entrevista com Cliente</h4>
-                                        <span class="note-meta">Ontem às 11:00 • 30 min</span>
-                                    </div>
-                                    <div class="note-status pending">
-                                        Em processamento
-                                    </div>
-                                    <button class="action-btn"><i class="fa-solid fa-ellipsis-vertical"></i></button>
+                            <div id="recentRecordingsList" class="notes-list">
+                                <!-- Dynamic recordings will be loaded here -->
+                                <div class="empty-state">
+                                    <p>Nenhuma gravação recente.</p>
                                 </div>
                             </div>
                         </section>
@@ -278,7 +244,14 @@
                     <div class="wave"></div>
                     <div class="wave"></div>
                 </div>
-                <div id="recordingTimer" class="recording-timer">00:00:00</div>
+                <!-- Status Row: Timer + Live Transcription -->
+                <div class="recorder-status-row">
+                    <div id="recordingTimer" class="recording-timer">00:00:00</div>
+                    
+                    <div id="liveTranscript" class="live-transcript-container">
+                        <p id="liveTranscriptText" class="live-transcript-text">Aguardando áudio para transcrever...</p>
+                    </div>
+                </div>
             </div>
             <div class="recorder-footer">
                 <button id="stopRecordingBtn" class="stop-btn">
@@ -364,6 +337,36 @@
     </div>
 
     <script src="js/script.js"></script>
+    <!-- Ata Detail Overlay -->
+    <div id="ataDetailOverlay" class="history-overlay hidden">
+        <div class="history-container">
+            <div class="history-header">
+                <h2 id="ataDetailTitle">Título da Ata</h2>
+                <button id="closeAtaDetailBtn" class="close-overlay-btn"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            
+            <div class="ata-detail-body">
+                <div class="ata-detail-info">
+                    <span id="ataDetailDate"><i class="fa-regular fa-calendar"></i> --/--/----</span>
+                    <button id="downloadPdfBtn" class="primary-btn sm">
+                        <i class="fa-solid fa-file-pdf"></i> Baixar PDF
+                    </button>
+                </div>
+
+                <div class="ata-detail-content">
+                    <h3>Resumo</h3>
+                    <div id="ataDetailSummary" class="insight-box summary">
+                        <p>Carregando resumo...</p>
+                    </div>
+
+                    <h3>Transcrição Completa</h3>
+                    <div id="ataDetailTranscription" class="transcription-text">
+                        <p>Carregando transcrição...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </body>
 
 </html>

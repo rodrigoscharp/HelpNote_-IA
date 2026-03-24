@@ -1,7 +1,12 @@
 package com.example.HelpNote.domain;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -24,6 +29,20 @@ public class User {
     @Column(nullable = false)
     private String password; // In a real app, this should be hashed
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, columnDefinition = "varchar(255) default 'FREE'")
+    private PlanType planType = PlanType.FREE;
+
+    private LocalDateTime planStartDate;
+
+    @Column(columnDefinition = "integer default 0")
+    private int dailyNoteCount = 0;
+
+    @Column(columnDefinition = "integer default 0")
+    private int dailyAtaCount = 0;
+
+    private LocalDate lastUsageResetDate;
+
     public User() {
     }
 
@@ -31,6 +50,8 @@ public class User {
         this.name = name;
         this.email = email;
         this.password = password;
+        this.planType = PlanType.FREE;
+        this.lastUsageResetDate = LocalDate.now();
     }
 
     public Long getId() {
@@ -63,5 +84,45 @@ public class User {
 
     public void setPassword(String password) {
         this.password = password;
+    }
+
+    public PlanType getPlanType() {
+        return planType;
+    }
+
+    public void setPlanType(PlanType planType) {
+        this.planType = planType;
+    }
+
+    public LocalDateTime getPlanStartDate() {
+        return planStartDate;
+    }
+
+    public void setPlanStartDate(LocalDateTime planStartDate) {
+        this.planStartDate = planStartDate;
+    }
+
+    public int getDailyNoteCount() {
+        return dailyNoteCount;
+    }
+
+    public void setDailyNoteCount(int dailyNoteCount) {
+        this.dailyNoteCount = dailyNoteCount;
+    }
+
+    public int getDailyAtaCount() {
+        return dailyAtaCount;
+    }
+
+    public void setDailyAtaCount(int dailyAtaCount) {
+        this.dailyAtaCount = dailyAtaCount;
+    }
+
+    public LocalDate getLastUsageResetDate() {
+        return lastUsageResetDate;
+    }
+
+    public void setLastUsageResetDate(LocalDate lastUsageResetDate) {
+        this.lastUsageResetDate = lastUsageResetDate;
     }
 }

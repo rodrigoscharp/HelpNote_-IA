@@ -42,6 +42,10 @@
                     <i class="fa-solid fa-clock-rotate-left"></i>
                     <span>Histórico</span>
                 </a>
+                <a href="pricing.html" class="nav-item">
+                    <i class="fa-solid fa-crown"></i>
+                    <span>Planos</span>
+                </a>
                 <a href="#" id="settingsMenuLink" class="nav-item">
                     <i class="fa-solid fa-gear"></i>
                     <span>Configurações</span>
@@ -56,7 +60,7 @@
                     </div>
                     <div class="user-info">
                         <span class="name" id="userProfileName">Carregando...</span>
-                        <span class="plan">Premium</span>
+                        <span class="plan" id="userPlanBadge">Gratuito</span>
                     </div>
                     <button id="logoutBtn" class="logout-btn tooltip" data-tooltip="Sair">
                         <i class="fa-solid fa-arrow-right-from-bracket"></i>
@@ -110,6 +114,18 @@
                         </div>
                     </div>
                 </section>
+
+                <!-- Usage Stats Row (visible for free plan) -->
+                <div class="usage-stats-row" id="usageStatsRow" style="display:none;">
+                    <div class="usage-stat">
+                        <i class="fa-solid fa-pen-to-square"></i>
+                        <span>Anotações hoje: <span class="usage-count" id="usageNotes">0/1</span></span>
+                    </div>
+                    <div class="usage-stat">
+                        <i class="fa-solid fa-clipboard-list"></i>
+                        <span>Atas hoje: <span class="usage-count" id="usageAtas">0/1</span></span>
+                    </div>
+                </div>
 
                 <div class="split-layout">
                     <!-- Left Column: Upload & Recent Notes -->
@@ -367,6 +383,27 @@
             </div>
         </div>
     </div>
+
+    <!-- Upgrade Modal Overlay -->
+    <div id="upgradeOverlay" class="upgrade-overlay hidden">
+        <div class="upgrade-modal">
+            <div class="upgrade-modal-icon">
+                <i class="fa-solid fa-lock"></i>
+            </div>
+            <h3>Limite Diário Atingido!</h3>
+            <p id="upgradeMessage">Você atingiu o limite do plano gratuito. Faça upgrade para o Premium por apenas <strong>R$ 9,99/mês</strong> e tenha acesso ilimitado!</p>
+            <div class="upgrade-modal-actions">
+                <button class="pricing-btn premium-btn" onclick="window.location.href='pricing.html'">
+                    <i class="fa-solid fa-crown"></i>
+                    <span>Ver Planos</span>
+                </button>
+                <button class="cancel-link" onclick="document.getElementById('upgradeOverlay').classList.add('hidden')">
+                    Fechar
+                </button>
+            </div>
+        </div>
+    </div>
+
 </body>
 
 </html>

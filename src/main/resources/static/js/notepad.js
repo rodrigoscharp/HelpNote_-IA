@@ -41,6 +41,10 @@ document.addEventListener('DOMContentLoaded', () => {
         })
         .then(user => {
             if (userProfileName) userProfileName.textContent = user.userName;
+            if (user.planType && typeof updatePlanBadge === 'function') {
+                updatePlanBadge(user.planType);
+            }
+            if (typeof loadUsageStatus === 'function') loadUsageStatus();
         })
         .catch(err => console.log("Auth error:", err));
 
@@ -209,11 +213,31 @@ document.addEventListener('DOMContentLoaded', () => {
                     body: formData.toString()
                 });
 
+                if (response.status === 403) {
+                    const errorData = await response.json();
+                    if (errorData.upgradeRequired) {
+                        if (typeof showUpgradeModal === 'function') {
+                            showUpgradeModal(errorData.error);
+                        } else {
+                            // Fallback: show the overlay directly
+                            const overlay = document.getElementById('upgradeOverlay');
+                            const msgEl = document.getElementById('upgradeMessage');
+                            if (overlay) {
+                                if (msgEl) msgEl.innerHTML = errorData.error + ' Faça upgrade para o <strong>Premium</strong> por apenas <strong>R$ 9,99/mês</strong> e tenha acesso ilimitado!';
+                                overlay.classList.remove('hidden');
+                            }
+                        }
+                    }
+                    return;
+                }
+
                 if (response.ok) {
                     const saveStatus = document.getElementById('saveStatus');
                     if (saveStatus) saveStatus.textContent = 'Salvo com sucesso! ✓';
                     // Refresh history
                     loadHistory();
+                    // Refresh usage counters
+                    if (typeof loadUsageStatus === 'function') loadUsageStatus();
                     setTimeout(() => {
                         if (saveStatus) saveStatus.textContent = 'Rascunho salvo';
                     }, 3000);

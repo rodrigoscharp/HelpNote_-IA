@@ -44,6 +44,10 @@
                     <i class="fa-solid fa-clock-rotate-left"></i>
                     <span>Histórico</span>
                 </a>
+                <a href="pricing.html" class="nav-item">
+                    <i class="fa-solid fa-crown"></i>
+                    <span>Planos</span>
+                </a>
                 <a href="#" class="nav-item">
                     <i class="fa-solid fa-gear"></i>
                     <span>Configurações</span>
@@ -58,7 +62,7 @@
                     </div>
                     <div class="user-info">
                         <span class="name" id="userProfileName">Carregando...</span>
-                        <span class="plan">Premium</span>
+                        <span class="plan" id="userPlanBadge">Gratuito</span>
                     </div>
                     <button id="logoutBtn" class="logout-btn tooltip" data-tooltip="Sair">
                         <i class="fa-solid fa-arrow-right-from-bracket"></i>
@@ -227,5 +231,25 @@
     <!-- The custom javascript piece for the notepad -->
     <script src="js/notepad.js"></script>
 </body>
+
+    <!-- Upgrade Modal Overlay -->
+    <div id="upgradeOverlay" class="upgrade-overlay hidden">
+        <div class="upgrade-modal">
+            <div class="upgrade-modal-icon">
+                <i class="fa-solid fa-lock"></i>
+            </div>
+            <h3>Limite Diário Atingido!</h3>
+            <p id="upgradeMessage">Você atingiu o limite do plano gratuito. Faça upgrade para o Premium por apenas <strong>R$ 9,99/mês</strong> e tenha acesso ilimitado!</p>
+            <div class="upgrade-modal-actions">
+                <button class="pricing-btn premium-btn" onclick="window.location.href='pricing.html'">
+                    <i class="fa-solid fa-crown"></i>
+                    <span>Ver Planos</span>
+                </button>
+                <button class="cancel-link" onclick="document.getElementById('upgradeOverlay').classList.add('hidden')">
+                    Fechar
+                </button>
+            </div>
+        </div>
+    </div>
 
 </html>

@@ -1,7 +1,9 @@
 package com.example.HelpNote.controller;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -17,6 +19,10 @@ import org.springframework.web.bind.annotation.RestController;
 import com.example.HelpNote.domain.Ata;
 import com.example.HelpNote.service.NoteService;
 import com.example.HelpNote.service.PdfService;
+import com.example.HelpNote.service.UsageLimitService;
+
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpSession;
 
 @RestController
 @RequestMapping("/api/atas")
@@ -24,17 +30,35 @@ public class AtaController {
 
     private final NoteService noteService;
     private final PdfService pdfService;
+    private final UsageLimitService usageLimitService;
 
-    public AtaController(NoteService noteService, PdfService pdfService) {
+    public AtaController(NoteService noteService, PdfService pdfService, UsageLimitService usageLimitService) {
         this.noteService = noteService;
         this.pdfService = pdfService;
+        this.usageLimitService = usageLimitService;
     }
 
     @PostMapping
-    public ResponseEntity<Ata> createAta(
+    public ResponseEntity<?> createAta(
             @RequestParam("title") String title,
-            @RequestParam("transcription") String transcription) {
+            @RequestParam("transcription") String transcription,
+            HttpServletRequest request) {
+
+        Long userId = getUserIdFromSession(request);
+        if (userId != null && !usageLimitService.canCreateAta(userId)) {
+            Map<String, Object> error = new HashMap<>();
+            error.put("error", "Limite diário atingido! No plano gratuito você pode gerar 1 ata por dia.");
+            error.put("upgradeRequired", true);
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+        }
+
         Ata savedAta = noteService.saveMeetingNote(title, transcription);
+
+        // Increment usage counter
+        if (userId != null) {
+            usageLimitService.incrementAtaUsage(userId);
+        }
+
         return new ResponseEntity<>(savedAta, HttpStatus.CREATED);
     }
 
@@ -78,4 +102,13 @@ public class AtaController {
             }
         }).orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));
     }
+
+    private Long getUserIdFromSession(HttpServletRequest request) {
+        HttpSession session = request.getSession(false);
+        if (session != null && session.getAttribute("userId") != null) {
+            return (Long) session.getAttribute("userId");
+        }
+        return null;
+    }
 }
+

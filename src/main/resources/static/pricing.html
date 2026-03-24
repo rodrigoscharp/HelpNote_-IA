@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HelpNote IA - Planos e Preços</title>
+    <link rel="icon" href="favicon.png" type="image/png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="brand">
+                <div class="logo-icon"><i class="fa-solid fa-microphone-lines"></i></div>
+                <a href="index.html" style="text-decoration: none; color: inherit;">
+                    <h1>HelpNote <span>IA</span></h1>
+                </a>
+            </div>
+
+            <nav class="nav-menu">
+                <a href="index.html" class="nav-item">
+                    <i class="fa-solid fa-house"></i>
+                    <span>Início</span>
+                </a>
+                <a href="smart-notepad.html" class="nav-item">
+                    <i class="fa-solid fa-pen-to-square"></i>
+                    <span>Anotação inteligente</span>
+                </a>
+                <a href="index.html#recordings" class="nav-item">
+                    <i class="fa-solid fa-clipboard-list"></i>
+                    <span>ATA de reuniões</span>
+                </a>
+                <a href="pricing.html" class="nav-item active">
+                    <i class="fa-solid fa-crown"></i>
+                    <span>Planos</span>
+                </a>
+                <a href="#" class="nav-item">
+                    <i class="fa-solid fa-gear"></i>
+                    <span>Configurações</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="user-profile">
+                    <div class="avatar" id="sidebarAvatar">
+                        <i class="fa-solid fa-user"></i>
+                        <img src="" alt="Avatar" class="sidebar-avatar-img hidden">
+                    </div>
+                    <div class="user-info">
+                        <span class="name" id="userProfileName">Carregando...</span>
+                        <span class="plan" id="userPlanBadge">Gratuito</span>
+                    </div>
+                    <button id="logoutBtn" class="logout-btn tooltip" data-tooltip="Sair">
+                        <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                    </button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <header class="top-header">
+                <div class="header-left">
+                    <button id="menuToggle" class="menu-toggle">
+                        <i class="fa-solid fa-bars"></i>
+                    </button>
+                    <div class="page-title">
+                        <h2>Planos e Preços</h2>
+                    </div>
+                </div>
+            </header>
+
+            <div class="content-wrapper pricing-page-wrapper">
+                <!-- Pricing Hero -->
+                <div class="pricing-hero">
+                    <div class="pricing-hero-icon">
+                        <i class="fa-solid fa-rocket"></i>
+                    </div>
+                    <h2>Escolha o plano ideal para você</h2>
+                    <p>Desbloqueie todo o potencial da IA para organizar suas reuniões e anotações.</p>
+                </div>
+
+                <!-- Pricing Cards -->
+                <div class="pricing-cards-container">
+                    <!-- Free Plan -->
+                    <div class="pricing-card" id="freePlanCard">
+                        <div class="pricing-card-header">
+                            <div class="pricing-plan-icon free">
+                                <i class="fa-solid fa-leaf"></i>
+                            </div>
+                            <h3>Gratuito</h3>
+                            <p class="pricing-subtitle">Para experimentar a plataforma</p>
+                        </div>
+                        <div class="pricing-price">
+                            <span class="price-value">R$ 0</span>
+                            <span class="price-period">para sempre</span>
+                        </div>
+                        <ul class="pricing-features">
+                            <li>
+                                <i class="fa-solid fa-check"></i>
+                                <span><strong>1</strong> anotação inteligente por dia</span>
+                            </li>
+                            <li>
+                                <i class="fa-solid fa-check"></i>
+                                <span><strong>1</strong> ata de reunião gerada por dia</span>
+                            </li>
+                            <li>
+                                <i class="fa-solid fa-check"></i>
+                                <span>Sugestões de IA</span>
+                            </li>
+                            <li>
+                                <i class="fa-solid fa-check"></i>
+                                <span>Histórico completo</span>
+                            </li>
+                            <li class="feature-disabled">
+                                <i class="fa-solid fa-xmark"></i>
+                                <span>Uso ilimitado</span>
+                            </li>
+                            <li class="feature-disabled">
+                                <i class="fa-solid fa-xmark"></i>
+                                <span>Suporte prioritário</span>
+                            </li>
+                        </ul>
+                        <button class="pricing-btn free-btn" id="freePlanBtn" disabled>
+                            <span>Plano Atual</span>
+                        </button>
+                    </div>
+
+                    <!-- Premium Plan -->
+                    <div class="pricing-card premium" id="premiumPlanCard">
+                        <div class="pricing-badge">
+                            <i class="fa-solid fa-star"></i> Mais Popular
+                        </div>
+                        <div class="pricing-card-header">
+                            <div class="pricing-plan-icon premium">
+                                <i class="fa-solid fa-crown"></i>
+                            </div>
+                            <h3>Premium</h3>
+                            <p class="pricing-subtitle">Para quem precisa de mais</p>
+                        </div>
+                        <div class="pricing-price">
+                            <span class="price-value">R$ 9,99</span>
+                            <span class="price-period">/ mês</span>
+                        </div>
+                        <ul class="pricing-features">
+                            <li>
+                                <i class="fa-solid fa-check"></i>
+                                <span>Anotações inteligentes <strong>ilimitadas</strong></span>
+                            </li>
+                            <li>
+                                <i class="fa-solid fa-check"></i>
+                                <span>Atas de reunião <strong>ilimitadas</strong></span>
+                            </li>
+                            <li>
+                                <i class="fa-solid fa-check"></i>
+                                <span>Sugestões de IA avançadas</span>
+                            </li>
+                            <li>
+                                <i class="fa-solid fa-check"></i>
+                                <span>Histórico completo</span>
+                            </li>
+                            <li>
+                                <i class="fa-solid fa-check"></i>
+                                <span>Uso <strong>ilimitado</strong> de todas as features</span>
+                            </li>
+                            <li>
+                                <i class="fa-solid fa-check"></i>
+                                <span>Suporte <strong>prioritário</strong></span>
+                            </li>
+                        </ul>
+                        <button class="pricing-btn premium-btn" id="premiumPlanBtn">
+                            <i class="fa-solid fa-bolt"></i>
+                            <span>Assinar Premium</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- FAQ Section -->
+                <div class="pricing-faq">
+                    <h3>Perguntas Frequentes</h3>
+                    <div class="faq-item">
+                        <h4><i class="fa-solid fa-circle-question"></i> O que acontece quando atinjo o limite diário?</h4>
+                        <p>Você verá uma mensagem informando que o limite foi atingido e será convidado a fazer upgrade para o plano Premium para continuar usando.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4><i class="fa-solid fa-circle-question"></i> Posso cancelar o Premium a qualquer momento?</h4>
+                        <p>Sim! Você pode fazer downgrade para o plano gratuito a qualquer momento sem perder seus dados.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h4><i class="fa-solid fa-circle-question"></i> Os limites diários são resetados quando?</h4>
+                        <p>Os limites do plano gratuito são resetados automaticamente todos os dias à meia-noite.</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Success Toast -->
+    <div id="upgradeSuccessToast" class="upgrade-toast hidden">
+        <i class="fa-solid fa-circle-check"></i>
+        <span>Plano atualizado com sucesso!</span>
+    </div>
+
+    <script src="js/script.js"></script>
+    <script src="js/pricing.js"></script>
+</body>
+
+</html>

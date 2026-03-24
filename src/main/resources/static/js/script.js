@@ -51,6 +51,12 @@ function initializeMainApp() {
                 userProfileName.textContent = user.userName;
             }
             updateGreeting(user.userName);
+            // Update plan badge from auth response
+            if (user.planType) {
+                updatePlanBadge(user.planType);
+            }
+            // Load usage status
+            loadUsageStatus();
         })
         .catch(err => console.log("Auth session exception:", err));
 
@@ -429,7 +435,7 @@ function initializeMainApp() {
         }
 
         const title = `Ata de Reunião - ${new Date().toLocaleString('pt-BR')}`;
-        console.log("Enviando POST para /api/notes/meeting com título:", title);
+        console.log("Enviando POST para /api/atas com título:", title);
         
         const params = new URLSearchParams();
         params.append('title', title);
@@ -441,6 +447,14 @@ function initializeMainApp() {
                 body: params
             });
 
+            if (response.status === 403) {
+                const errorData = await response.json();
+                if (errorData.upgradeRequired) {
+                    showUpgradeModal(errorData.error);
+                }
+                return;
+            }
+
             if (response.ok) {
                 const savedNote = await response.json();
                 console.log("Ata salva com sucesso! ID:", savedNote.id);
@@ -448,6 +462,7 @@ function initializeMainApp() {
                 // Show a small toast or scroll
                 loadRecentRecordings();
                 if (typeof fetchHistory === 'function') fetchHistory();
+                loadUsageStatus(); // Refresh usage counters
             } else {
                 const errorText = await response.text();
                 console.error("Erro ao salvar ata. Status:", response.status, "Mensagem:", errorText);
@@ -892,5 +907,64 @@ function initializeMainApp() {
             if (hours >= 18 || hours < 5) greeting = "Boa noite";
             greetingText.textContent = `${greeting}, ${firstName}! 👋`;
         }
+    }
+}
+
+// --- Global Plan/Usage Functions ---
+
+function updatePlanBadge(planType) {
+    const planBadge = document.getElementById('userPlanBadge');
+    if (planBadge) {
+        if (planType === 'PREMIUM') {
+            planBadge.textContent = 'Premium';
+            planBadge.className = 'plan plan-premium';
+        } else {
+            planBadge.textContent = 'Gratuito';
+            planBadge.className = 'plan plan-free';
+        }
+    }
+}
+
+async function loadUsageStatus() {
+    try {
+        const response = await fetch('/api/plan/status');
+        if (!response.ok) return;
+        const status = await response.json();
+
+        updatePlanBadge(status.planType);
+
+        // Update usage stats row on dashboard
+        const usageStatsRow = document.getElementById('usageStatsRow');
+        const usageNotes = document.getElementById('usageNotes');
+        const usageAtas = document.getElementById('usageAtas');
+
+        if (usageStatsRow && usageNotes && usageAtas) {
+            if (!status.premium) {
+                usageStatsRow.style.display = 'flex';
+                const usedNotes = status.maxNotes - status.remainingNotes;
+                const usedAtas = status.maxAtas - status.remainingAtas;
+
+                usageNotes.textContent = `${usedNotes}/${status.maxNotes}`;
+                usageAtas.textContent = `${usedAtas}/${status.maxAtas}`;
+
+                usageNotes.className = status.remainingNotes <= 0 ? 'usage-count exhausted' : 'usage-count';
+                usageAtas.className = status.remainingAtas <= 0 ? 'usage-count exhausted' : 'usage-count';
+            } else {
+                usageStatsRow.style.display = 'none';
+            }
+        }
+    } catch (error) {
+        console.error("Erro ao carregar status de uso:", error);
+    }
+}
+
+function showUpgradeModal(message) {
+    const overlay = document.getElementById('upgradeOverlay');
+    const msgEl = document.getElementById('upgradeMessage');
+    if (overlay) {
+        if (msgEl && message) {
+            msgEl.innerHTML = message + ' Faça upgrade para o <strong>Premium</strong> por apenas <strong>R$ 9,99/mês</strong> e tenha acesso ilimitado!';
+        }
+        overlay.classList.remove('hidden');
     }
 }

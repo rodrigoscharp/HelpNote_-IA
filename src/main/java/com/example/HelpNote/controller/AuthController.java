@@ -3,6 +3,7 @@ package com.example.HelpNote.controller;
 import com.example.HelpNote.domain.User;
 import com.example.HelpNote.dto.LoginRequest;
 import com.example.HelpNote.dto.RegisterRequest;
+import com.example.HelpNote.repository.UserRepository;
 import com.example.HelpNote.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
@@ -20,10 +21,12 @@ import java.util.Optional;
 public class AuthController {
 
     private final UserService userService;
+    private final UserRepository userRepository;
 
     @Autowired
-    public AuthController(UserService userService) {
+    public AuthController(UserService userService, UserRepository userRepository) {
         this.userService = userService;
+        this.userRepository = userRepository;
     }
 
     @PostMapping("/login")
@@ -43,6 +46,7 @@ public class AuthController {
             response.put("message", "Login successful");
             response.put("userId", user.getId());
             response.put("userName", user.getName());
+            response.put("planType", user.getPlanType().name());
             
             return ResponseEntity.ok(response);
         } else {
@@ -78,6 +82,13 @@ public class AuthController {
             response.put("userId", session.getAttribute("userId"));
             response.put("userName", session.getAttribute("userName"));
             response.put("userEmail", session.getAttribute("userEmail"));
+
+            // Include plan type from database
+            Long userId = (Long) session.getAttribute("userId");
+            userRepository.findById(userId).ifPresent(user ->
+                response.put("planType", user.getPlanType().name())
+            );
+
             return ResponseEntity.ok(response);
         } else {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Not authenticated");

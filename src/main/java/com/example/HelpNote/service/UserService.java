@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 public class UserService {
@@ -40,5 +41,20 @@ public class UserService {
         }
         
         return Optional.empty();
+    }
+
+    public User processGoogleLogin(String email, String name) {
+        // Attempt to find existing user by email
+        Optional<User> existingUser = userRepository.findByEmail(email);
+        
+        if (existingUser.isPresent()) {
+            return existingUser.get();
+        }
+
+        // Create new user if not exists
+        // Generate a random password since user relies on Google Auth
+        String randomPassword = UUID.randomUUID().toString();
+        User newUser = new User(name, email, randomPassword);
+        return userRepository.save(newUser);
     }
 }

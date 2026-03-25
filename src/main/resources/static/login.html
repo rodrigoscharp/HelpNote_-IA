@@ -12,6 +12,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Identity Services -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
     <!-- Main Style -->
     <link rel="stylesheet" href="css/style.css">
 </head>
@@ -109,10 +111,7 @@
                         <i class="fa-solid fa-arrow-right"></i>
                     </button>
                     
-                    <button type="button" class="social-login-btn google-btn">
-                        <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" width="20" height="20">
-                        Entrar com Google
-                    </button>
+                    <div id="googleButtonWrapper" style="display: flex; justify-content: center; width: 100%; margin-top: 15px;"></div>
                 </form>
 
                 <div class="auth-footer">

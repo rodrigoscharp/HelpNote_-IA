@@ -84,4 +84,78 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
+
+    // Google Identity Services Setup
+    window.onload = function () {
+        const GOOGLE_CLIENT_ID = 'YOUR_GOOGLE_CLIENT_ID';
+
+        google.accounts.id.initialize({
+            client_id: GOOGLE_CLIENT_ID,
+            callback: handleGoogleResponse
+        });
+
+        const googleButtonWrapper = document.getElementById('googleButtonWrapper');
+        if (googleButtonWrapper) {
+            google.accounts.id.renderButton(
+                googleButtonWrapper,
+                { theme: 'outline', size: 'large', type: 'standard', text: 'signin_with', width: googleButtonWrapper.offsetWidth || 300 }
+            );
+        }
+    };
+
+    async function handleGoogleResponse(response) {
+        const btn = document.querySelector('.auth-btn');
+        const errorDiv = document.getElementById('authErrorMessage');
+        const originalText = btn ? btn.innerHTML : '';
+
+        if (errorDiv) {
+            errorDiv.classList.add('hidden');
+            errorDiv.textContent = '';
+        }
+
+        if (btn) {
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Autenticando com Google...';
+            btn.style.opacity = '0.8';
+            btn.disabled = true;
+        }
+
+        try {
+            const res = await fetch('/api/auth/google', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    credential: response.credential
+                })
+            });
+
+            if (res.ok) {
+                // Success! Redirect to dashboard
+                window.location.href = 'index.html';
+            } else {
+                const errorMsg = await res.text();
+                if (errorDiv) {
+                    errorDiv.textContent = errorMsg || "Falha na autenticação com o Google.";
+                    errorDiv.classList.remove('hidden');
+                }
+                if (btn) {
+                    btn.innerHTML = originalText;
+                    btn.style.opacity = '1';
+                    btn.disabled = false;
+                }
+            }
+        } catch (error) {
+            console.error("Google Login error:", error);
+            if (errorDiv) {
+                errorDiv.textContent = "Erro ao conectar ao servidor.";
+                errorDiv.classList.remove('hidden');
+            }
+            if (btn) {
+                btn.innerHTML = originalText;
+                btn.style.opacity = '1';
+                btn.disabled = false;
+            }
+        }
+    }
 });

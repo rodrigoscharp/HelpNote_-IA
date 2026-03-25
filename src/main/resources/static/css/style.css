@@ -3021,3 +3021,268 @@ button {
         text-align: center;
     }
 }
+
+/* ==========================================================================
+   Notifications Dropdown (Premium UI)
+   ========================================================================== */
+.notifications-wrapper {
+    position: relative;
+    user-select: none;
+}
+
+.notifications-dropdown {
+    position: absolute;
+    top: calc(100% + 18px); /* slightly more space */
+    right: -10px; /* shift slightly to align closer to center of button if possible, or right align */
+    width: 380px; /* wider for a better look */
+    background: rgba(18, 18, 26, 0.85);
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.08); /* crisp subtle border */
+    border-radius: 20px; /* softer edges */
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    z-index: 100;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(15px) scale(0.95);
+    transform-origin: top right;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); /* modern bounce effect */
+}
+
+.notifications-dropdown.active {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0) scale(1);
+}
+
+.notifications-dropdown.hidden {
+    display: block; /* Overrides native hidden attribute so animation works out */
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transform: translateY(15px) scale(0.95);
+}
+
+.notifications-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 24px 16px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05); /* very soft line */
+}
+
+.notifications-header h3 {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #fff;
+    margin: 0;
+    letter-spacing: -0.3px;
+}
+
+.text-btn {
+    background: transparent;
+    border: none;
+    color: var(--primary);
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.text-btn:hover {
+    color: var(--primary-light);
+    text-shadow: 0 0 10px rgba(108, 92, 231, 0.5); /* slight glow */
+}
+
+.notifications-list {
+    max-height: 380px;
+    overflow-y: auto;
+    padding: 10px 12px;
+}
+
+/* Scrollbar adjustment for dropdown */
+.notifications-list::-webkit-scrollbar {
+    width: 6px;
+}
+.notifications-list::-webkit-scrollbar-track {
+    background: transparent;
+}
+.notifications-list::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 10px;
+}
+
+/* Floating Notification Cards */
+.notification-item {
+    display: flex;
+    align-items: flex-start; /* align icon to top */
+    gap: 16px;
+    padding: 16px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.03);
+    border-radius: 14px;
+    margin-bottom: 8px; /* space between items */
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    cursor: pointer;
+    text-align: left;
+    position: relative;
+    overflow: hidden;
+}
+
+.notification-item:last-child {
+    margin-bottom: 0;
+}
+
+.notification-item:hover {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.1);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px -8px rgba(0, 0, 0, 0.5);
+}
+
+.notification-item.unread {
+    background: rgba(108, 92, 231, 0.08);
+    border-color: rgba(108, 92, 231, 0.2);
+}
+
+.notification-item.unread:hover {
+    background: rgba(108, 92, 231, 0.12);
+    border-color: rgba(108, 92, 231, 0.3);
+}
+
+/* Unread Indicator Dot */
+.notification-item.unread::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 4px;
+    height: 60%;
+    background: var(--primary);
+    border-radius: 0 4px 4px 0;
+    box-shadow: 0 0 12px var(--primary);
+}
+
+/* The glowing icons */
+.notification-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.15rem;
+    flex-shrink: 0;
+    border: 1px solid rgba(255, 255, 255, 0.08); /* inner rim reflection */
+    box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.05), 0 4px 12px rgba(0,0,0,0.3);
+}
+
+.notification-icon.ata {
+    background: linear-gradient(135deg, rgba(108, 92, 231, 0.2) 0%, rgba(108, 92, 231, 0.05) 100%);
+    color: #a29bfe; /* brighter primary */
+    box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.05), 0 0 15px rgba(108, 92, 231, 0.25);
+}
+
+.notification-icon.note {
+    background: linear-gradient(135deg, rgba(0, 210, 211, 0.2) 0%, rgba(0, 210, 211, 0.05) 100%);
+    color: #81ecec; /* brighter secondary */
+    box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.05), 0 0 15px rgba(0, 210, 211, 0.25);
+}
+
+.notification-icon.system {
+    background: linear-gradient(135deg, rgba(253, 203, 110, 0.2) 0%, rgba(253, 203, 110, 0.05) 100%);
+    color: #ffeaa7;
+    box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.05), 0 0 15px rgba(253, 203, 110, 0.25);
+}
+
+/* Beautiful text */
+.notification-content {
+    flex: 1;
+}
+
+.notification-content p {
+    margin: 0 0 6px;
+    font-size: 0.95rem;
+    line-height: 1.45;
+    color: #cbd5e1; /* softer silvery-blue */
+}
+
+.notification-content p strong {
+    color: #f8fafc; /* crisp white */
+    font-weight: 600;
+}
+
+.notification-time {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: #64748b; /* muted blue-grey */
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+
+/* Add a tiny clock icon before the time implicitly via JS or here, we'll just style the text for now */
+
+/* Close Notification Button */
+.close-notification-btn {
+    position: absolute;
+    top: 10px;
+    right: 12px;
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.3);
+    font-size: 0.85rem;
+    cursor: pointer;
+    padding: 6px; /* easier to click */
+    transition: all 0.2s ease;
+    opacity: 0;
+    border-radius: 50%;
+}
+
+.notification-item:hover .close-notification-btn {
+    opacity: 1;
+}
+
+.close-notification-btn:hover {
+    color: #ff4757; /* lively red */
+    background: rgba(255, 71, 87, 0.1);
+    transform: scale(1.1);
+}
+
+.notifications-footer {
+    padding: 16px;
+    text-align: center;
+    border-top: 1px solid rgba(255, 255, 255, 0.05); /* very soft line */
+}
+
+.notifications-footer a {
+    color: var(--primary-light);
+    font-size: 0.95rem;
+    font-weight: 600;
+    transition: var(--transition);
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.notifications-footer a::after {
+    content: '\f061'; /* FontAwesome arrow-right */
+    font-family: "Font Awesome 6 Free";
+    font-weight: 900;
+    font-size: 0.8rem;
+    transition: transform 0.3s ease;
+}
+
+.notifications-footer a:hover {
+    color: #fff;
+    text-shadow: 0 0 12px var(--primary);
+}
+
+.notifications-footer a:hover::after {
+    transform: translateX(4px);
+}

@@ -82,10 +82,49 @@
                     </div>
                 </div>
                 <div class="header-actions">
-                    <button class="icon-btn tooltip" data-tooltip="Notificações">
-                        <i class="fa-regular fa-bell"></i>
-                        <span class="badge">3</span>
-                    </button>
+                    <div class="notifications-wrapper" style="position: relative;">
+                        <button id="notificationsBtn" class="icon-btn tooltip" data-tooltip="Notificações">
+                            <i class="fa-regular fa-bell"></i>
+                            <span class="badge" id="notificationBadge">3</span>
+                        </button>
+                        
+                        <!-- Notifications Dropdown -->
+                        <div id="notificationsDropdown" class="notifications-dropdown hidden">
+                            <div class="notifications-header">
+                                <h3>Notificações</h3>
+                                <button id="markAllReadBtn" class="text-btn">Marcar como lidas</button>
+                            </div>
+                            <div class="notifications-list" id="notificationsList">
+                                <div class="notification-item unread">
+                                    <div class="notification-icon ata"><i class="fa-solid fa-file-contract"></i></div>
+                                    <div class="notification-content">
+                                        <p>Sua <strong>ATA de Reunião</strong> foi gerada com sucesso.</p>
+                                        <span class="notification-time">Há 5 min</span>
+                                    </div>
+                                    <button class="close-notification-btn"><i class="fa-solid fa-xmark"></i></button>
+                                </div>
+                                <div class="notification-item unread">
+                                    <div class="notification-icon system"><i class="fa-solid fa-crown"></i></div>
+                                    <div class="notification-content">
+                                        <p><strong>Dica:</strong> Faça upgrade para criar mais anotações.</p>
+                                        <span class="notification-time">Há 2 horas</span>
+                                    </div>
+                                    <button class="close-notification-btn"><i class="fa-solid fa-xmark"></i></button>
+                                </div>
+                                <div class="notification-item">
+                                    <div class="notification-icon note"><i class="fa-solid fa-wand-magic-sparkles"></i></div>
+                                    <div class="notification-content">
+                                        <p>Resumo da gravação "Ideias Q3" pronto.</p>
+                                        <span class="notification-time">Ontem</span>
+                                    </div>
+                                    <button class="close-notification-btn"><i class="fa-solid fa-xmark"></i></button>
+                                </div>
+                            </div>
+                            <div class="notifications-footer">
+                                <a href="#">Ver todas as notificações</a>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </header>
 

@@ -968,3 +968,85 @@ function showUpgradeModal(message) {
         overlay.classList.remove('hidden');
     }
 }
+
+// ==========================================
+// NOTIFICATIONS DROPDOWN LOGIC
+// ==========================================
+document.addEventListener('DOMContentLoaded', () => {
+    const notificationsBtn = document.getElementById('notificationsBtn');
+    const notificationsDropdown = document.getElementById('notificationsDropdown');
+    const markAllReadBtn = document.getElementById('markAllReadBtn');
+    const notificationBadge = document.getElementById('notificationBadge');
+    const notificationsWrapper = document.querySelector('.notifications-wrapper');
+
+    if (notificationsBtn && notificationsDropdown) {
+        notificationsBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            notificationsDropdown.classList.remove('hidden');
+            setTimeout(() => {
+                notificationsDropdown.classList.toggle('active');
+            }, 10);
+        });
+
+        document.addEventListener('click', (e) => {
+            if (notificationsWrapper && !notificationsWrapper.contains(e.target)) {
+                if (notificationsDropdown.classList.contains('active')) {
+                    notificationsDropdown.classList.remove('active');
+                    setTimeout(() => notificationsDropdown.classList.add('hidden'), 300);
+                }
+            }
+        });
+
+        notificationsDropdown.addEventListener('click', (e) => {
+            e.stopPropagation();
+        });
+
+        if (markAllReadBtn) {
+            markAllReadBtn.addEventListener('click', () => {
+                const unreadItems = notificationsDropdown.querySelectorAll('.notification-item.unread');
+                unreadItems.forEach(item => {
+                    item.classList.remove('unread');
+                });
+                if (notificationBadge) {
+                    notificationBadge.style.display = 'none';
+                }
+            });
+        }
+
+        // Close individual notifications
+        const notificationsList = document.getElementById('notificationsList');
+        if (notificationsList) {
+            notificationsList.addEventListener('click', (e) => {
+                const btn = e.target.closest('.close-notification-btn');
+                if (btn) {
+                    e.stopPropagation(); // prevent card click
+                    const item = btn.closest('.notification-item');
+                    
+                    // Fade out animation
+                    item.style.transform = 'translateX(30px)';
+                    item.style.opacity = '0';
+                    
+                    setTimeout(() => {
+                        item.remove();
+                        updateBadgeCount();
+                    }, 300);
+                }
+            });
+        }
+
+        function updateBadgeCount() {
+            const currentItems = notificationsDropdown.querySelectorAll('.notification-item').length;
+            if (notificationBadge) {
+                if (currentItems > 0) {
+                    notificationBadge.textContent = currentItems;
+                } else {
+                    notificationBadge.style.display = 'none';
+                    if (notificationsList) {
+                        notificationsList.innerHTML = '<p style="text-align:center; padding: 40px 20px; color: #64748b; font-size: 0.95rem;">Você não tem novas notificações.</p>';
+                    }
+                }
+            }
+        }
+    }
+});

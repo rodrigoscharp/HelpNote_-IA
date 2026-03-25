@@ -1014,25 +1014,83 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
-        // Close individual notifications
+        // Handle Notification Dismissal
         const notificationsList = document.getElementById('notificationsList');
         if (notificationsList) {
+            // Dismiss via button click
             notificationsList.addEventListener('click', (e) => {
                 const btn = e.target.closest('.close-notification-btn');
                 if (btn) {
-                    e.stopPropagation(); // prevent card click
+                    e.stopPropagation();
                     const item = btn.closest('.notification-item');
-                    
-                    // Fade out animation
-                    item.style.transform = 'translateX(30px)';
-                    item.style.opacity = '0';
-                    
-                    setTimeout(() => {
-                        item.remove();
-                        updateBadgeCount();
-                    }, 300);
+                    dismissItem(item, 30); // small slide right
                 }
             });
+
+            // Swipe to Dismiss variables
+            let startX = 0;
+            let currentX = 0;
+            let draggedItem = null;
+
+            notificationsList.addEventListener('touchstart', (e) => {
+                const item = e.target.closest('.notification-item');
+                if (!item) return;
+
+                // Don't interfere if they are clicking the close btn exactly, although we allow swipe everywhere
+                startX = e.touches[0].clientX;
+                currentX = startX;
+                draggedItem = item;
+
+                // Remove transition to stick to finger instantly
+                draggedItem.style.transition = 'none';
+            }, { passive: true });
+
+            notificationsList.addEventListener('touchmove', (e) => {
+                if (!draggedItem) return;
+
+                currentX = e.touches[0].clientX;
+                const diffX = currentX - startX;
+
+                // Only allow swiping right or left
+                draggedItem.style.transform = `translateX(${diffX}px)`;
+                
+                // Opacity falls off relative to distance
+                const screenDist = window.innerWidth || 400;
+                draggedItem.style.opacity = Math.max(0, 1 - (Math.abs(diffX) / (screenDist * 0.5)));
+            }, { passive: true });
+
+            notificationsList.addEventListener('touchend', (e) => {
+                if (!draggedItem) return;
+
+                const diffX = currentX - startX;
+                
+                // Restore transition for smooth snapping or dismissing
+                draggedItem.style.transition = 'all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1)';
+                
+                // If dragged more than 80px, dismiss it
+                if (Math.abs(diffX) > 80) {
+                    const direction = diffX > 0 ? 100 : -100; // Slide offscreen entirely
+                    dismissItem(draggedItem, direction);
+                } else {
+                    // Snap back to zero
+                    draggedItem.style.transform = 'translateX(0)';
+                    draggedItem.style.opacity = '1';
+                }
+
+                draggedItem = null;
+            });
+            
+            function dismissItem(item, slideDistance) {
+                // Determine whether to use px or % based on value passed
+                const slideParam = typeof slideDistance === 'number' && Math.abs(slideDistance) === 100 ? `${slideDistance}%` : `${slideDistance}px`;
+                item.style.transform = `translateX(${slideParam})`;
+                item.style.opacity = '0';
+                
+                setTimeout(() => {
+                    item.remove();
+                    updateBadgeCount();
+                }, 300);
+            }
         }
 
         function updateBadgeCount() {

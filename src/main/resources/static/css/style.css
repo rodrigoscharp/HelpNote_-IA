@@ -1050,7 +1050,7 @@ button {
 
 .input-with-icon input {
     width: 100%;
-    padding: 12px 16px 12px 44px;
+    padding: 12px 44px 12px 44px;
     border: 1px solid var(--border-color);
     border-radius: var(--border-radius-sm);
     background-color: var(--bg-hover);
@@ -2098,6 +2098,56 @@ button {
     display: none;
 }
 
+.error-toast {
+    background: rgba(255, 71, 87, 0.1);
+    color: #ff4757;
+    padding: 12px;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    border-left: 3px solid #ff4757;
+}
+
+.error-toast.hidden {
+    display: none;
+}
+
+.settings-divider {
+    border: none;
+    border-top: 1px solid var(--border-color);
+    margin: 20px 0 16px;
+}
+
+.settings-section-title {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+/* Password fields in settings (no left icon, just right toggle) */
+.settings-pwd-wrap input {
+    padding-left: 16px !important;
+    padding-right: 44px !important;
+    width: 100%;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-sm);
+    font-family: inherit;
+    font-size: 0.9rem;
+    outline: none;
+    transition: var(--transition);
+    background-color: var(--bg-input, var(--bg-hover));
+    padding-top: 10px;
+    padding-bottom: 10px;
+}
+
+.settings-pwd-wrap input:focus {
+    border-color: var(--primary-light);
+    box-shadow: 0 0 0 3px var(--primary-alpha);
+}
+
 
 @media (max-width: 480px) {
     .search-bar {
@@ -2567,7 +2617,7 @@ button {
     height: 100%;
     background: rgba(0, 0, 0, 0.6);
     backdrop-filter: blur(8px);
-    z-index: 1000;
+    z-index: 2000;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -3344,4 +3394,574 @@ button {
 
 .notifications-footer a:hover::after {
     transform: translateX(4px);
+}
+/* ==========================================================================
+   Smart Notepad – improvements
+   ========================================================================== */
+
+/* Page title row */
+.page-title { display: flex; align-items: center; gap: 10px; }
+
+/* Edit-mode badge */
+.edit-badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 3px 10px;
+    background: var(--accent-alpha); color: var(--accent);
+    border: 1px solid rgba(245,158,11,0.3); border-radius: 20px;
+    font-size: 0.72rem; font-weight: 600;
+}
+.edit-badge.hidden { display: none; }
+
+/* Header icon buttons */
+.icon-action-btn {
+    width: 38px; height: 38px;
+    border-radius: var(--border-radius-sm);
+    background: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1rem; cursor: pointer;
+    transition: var(--transition);
+}
+.icon-action-btn:hover:not(:disabled) {
+    background: var(--bg-hover); color: var(--primary);
+    border-color: var(--primary-light);
+}
+.icon-action-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+.icon-action-btn.recording {
+    background: rgba(239,68,68,0.1); border-color: #ef4444; color: #ef4444;
+    animation: np-pulse-rec 1.5s infinite;
+}
+@keyframes np-pulse-rec {
+    0%,100% { box-shadow: 0 0 0 0 rgba(239,68,68,0.4); }
+    50%     { box-shadow: 0 0 0 6px rgba(239,68,68,0); }
+}
+
+/* Voice dictation bar */
+.voice-indicator {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 32px;
+    background: rgba(239,68,68,0.05);
+    border-top: 1px solid rgba(239,68,68,0.15);
+    color: #ef4444; font-size: 0.85rem; font-weight: 500;
+}
+.voice-indicator.hidden { display: none; }
+.voice-dot {
+    width: 9px; height: 9px;
+    background: #ef4444; border-radius: 50%;
+    animation: np-vdot 1s infinite;
+}
+@keyframes np-vdot {
+    0%,100% { opacity: 1; transform: scale(1); }
+    50%     { opacity: 0.4; transform: scale(1.4); }
+}
+.voice-indicator button {
+    margin-left: auto; cursor: pointer; font-family: inherit;
+    background: rgba(239,68,68,0.12); color: #ef4444;
+    border: 1px solid rgba(239,68,68,0.3); border-radius: 20px;
+    padding: 4px 12px; font-size: 0.8rem; font-weight: 600;
+    display: flex; align-items: center; gap: 5px;
+    transition: var(--transition);
+}
+.voice-indicator button:hover { background: rgba(239,68,68,0.25); }
+
+/* Status bar */
+.editor-status { justify-content: space-between; }
+.editor-status-right { display: flex; align-items: center; gap: 12px; }
+.save-status { display: flex; align-items: center; gap: 5px; color: var(--secondary); }
+.status-divider { color: var(--border-color); }
+
+/* Notepad sidebar layout */
+.notepad-layout .notepad-sidebar-col {
+    display: flex; flex-direction: column;
+    gap: 16px; overflow: hidden; height: 100%;
+}
+.np-ai-panel {
+    flex: 1; min-height: 0;
+    display: flex; flex-direction: column; overflow: hidden;
+}
+.np-ai-panel .ai-content { flex: 1; overflow-y: auto; min-height: 0; }
+.np-history-panel {
+    flex: 0 0 340px;
+    display: flex; flex-direction: column; overflow: hidden;
+}
+
+/* Notes-count badge */
+.notes-count-badge {
+    background: var(--primary-alpha); color: var(--primary);
+    border-radius: 20px; padding: 2px 10px;
+    font-size: 0.78rem; font-weight: 700;
+}
+
+/* History search inside panel */
+.np-history-search {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 16px 10px;
+    border-bottom: 1px solid var(--border-color);
+}
+.np-history-search i { color: var(--text-tertiary); font-size: 0.82rem; }
+.np-history-search input {
+    flex: 1; border: none; outline: none; background: transparent;
+    font-family: inherit; font-size: 0.875rem; color: var(--text-primary);
+}
+.np-history-search input::placeholder { color: var(--text-tertiary); }
+
+/* History list */
+.np-history-list { flex: 1; overflow-y: auto; padding: 6px 0; min-height: 0; }
+
+/* Note item */
+.np-note-item {
+    display: flex; align-items: center;
+    padding: 9px 12px 9px 16px; gap: 6px;
+    border-radius: var(--border-radius-sm);
+    margin: 2px 8px; cursor: pointer;
+    transition: var(--transition);
+}
+.np-note-item:hover { background: var(--bg-hover); }
+.np-note-item.active {
+    background: var(--primary-alpha);
+    border-left: 3px solid var(--primary);
+    padding-left: 13px;
+}
+.np-note-body { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; }
+.np-note-icon {
+    width: 30px; height: 30px; flex-shrink: 0;
+    background: var(--primary-alpha); color: var(--primary);
+    border-radius: 8px; display: flex; align-items: center;
+    justify-content: center; font-size: 0.78rem;
+}
+.np-note-info { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.np-note-title {
+    font-size: 0.875rem; font-weight: 600; color: var(--text-primary);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.np-note-meta { font-size: 0.72rem; color: var(--text-tertiary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.np-delete-btn {
+    width: 28px; height: 28px; flex-shrink: 0;
+    border-radius: 6px; background: transparent; border: none;
+    color: var(--text-tertiary); display: flex; align-items: center;
+    justify-content: center; font-size: 0.78rem; cursor: pointer;
+    opacity: 0; transition: var(--transition);
+}
+.np-note-item:hover .np-delete-btn { opacity: 1; }
+.np-delete-btn:hover { background: rgba(239,68,68,0.1); color: #ef4444; }
+
+/* Title suggestion box */
+.title-suggestion-box h5 { margin-bottom: 8px; }
+.title-suggestion-content {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 12px;
+    background: var(--bg-hover); border-radius: var(--border-radius-sm);
+    border: 1px dashed var(--border-color);
+}
+.title-suggestion-content span {
+    flex: 1; font-size: 0.9rem; font-style: italic; color: var(--text-primary);
+}
+.apply-title-btn {
+    background: var(--primary-alpha); color: var(--primary);
+    border: 1px solid rgba(99,102,241,0.2); border-radius: 20px;
+    padding: 4px 12px; font-size: 0.78rem; font-weight: 600;
+    cursor: pointer; white-space: nowrap;
+    display: flex; align-items: center; gap: 4px;
+    transition: var(--transition); font-family: inherit;
+}
+.apply-title-btn:hover { background: var(--primary); color: white; }
+
+/* Delete confirmation modal */
+.np-delete-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.5); backdrop-filter: blur(4px);
+    z-index: 9999;
+    display: flex; align-items: center; justify-content: center;
+}
+.np-delete-overlay.hidden { display: none; }
+.np-delete-modal {
+    background: var(--bg-card); border-radius: var(--border-radius-lg);
+    padding: 32px; max-width: 360px; width: 90%;
+    text-align: center; box-shadow: var(--shadow-lg);
+}
+.np-delete-icon {
+    width: 56px; height: 56px; margin: 0 auto 16px;
+    background: rgba(239,68,68,0.1); color: #ef4444;
+    border-radius: 50%; display: flex; align-items: center;
+    justify-content: center; font-size: 1.4rem;
+}
+.np-delete-modal h3 { font-size: 1.2rem; margin-bottom: 8px; }
+.np-delete-modal p { color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 24px; }
+.np-delete-actions { display: flex; gap: 12px; justify-content: center; }
+.btn-danger {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    color: white; padding: 10px 20px; border-radius: 20px;
+    font-weight: 600; font-size: 0.9rem;
+    display: flex; align-items: center; gap: 8px;
+    cursor: pointer; border: none; transition: var(--transition);
+    font-family: inherit;
+}
+.btn-danger:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(239,68,68,0.4); }
+.btn-secondary-outline {
+    background: transparent; color: var(--text-secondary);
+    padding: 10px 20px; border-radius: 20px;
+    font-weight: 600; font-size: 0.9rem;
+    cursor: pointer; border: 1px solid var(--border-color);
+    transition: var(--transition); font-family: inherit;
+}
+.btn-secondary-outline:hover { background: var(--bg-hover); }
+
+/* Responsive: notepad sidebar stacks on tablet */
+@media (max-width: 1024px) {
+    .notepad-layout .notepad-sidebar-col { height: auto; }
+    .np-ai-panel    { flex: none; min-height: 280px; }
+    .np-history-panel { flex: none; height: 320px; }
+}
+
+/* ==========================================================================
+   Mobile Bottom Navigation Bar
+   ========================================================================== */
+.mobile-bottom-nav {
+    display: none;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 64px;
+    background: var(--bg-card);
+    border-top: 1px solid var(--border-color);
+    box-shadow: 0 -4px 20px rgba(0,0,0,0.08);
+    z-index: 1000;
+    padding: 0 8px;
+    padding-bottom: env(safe-area-inset-bottom);
+}
+
+.mob-nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    flex: 1;
+    height: 100%;
+    color: var(--text-tertiary);
+    text-decoration: none;
+    font-size: 0.65rem;
+    font-weight: 500;
+    transition: var(--transition);
+    border-radius: 12px;
+    padding: 8px 4px;
+}
+
+.mob-nav-item i {
+    font-size: 1.2rem;
+    transition: var(--transition);
+}
+
+.mob-nav-item.active,
+.mob-nav-item:hover {
+    color: var(--primary);
+}
+
+.mob-nav-item.active i {
+    transform: scale(1.1);
+}
+
+/* ==========================================================================
+   Mobile Responsive — Full Overhaul (≤ 768px)
+   ========================================================================== */
+@media (max-width: 768px) {
+
+    /* Body: allow scrolling on mobile */
+    body {
+        overflow: auto;
+        height: auto;
+        min-height: 100vh;
+    }
+
+    .app-container {
+        height: auto;
+        min-height: 100vh;
+    }
+
+    /* Show bottom nav, hide desktop sidebar */
+    .mobile-bottom-nav {
+        display: flex;
+    }
+
+    .sidebar {
+        display: none !important;
+    }
+
+    /* Main content fills full width */
+    .main-content {
+        width: 100%;
+        max-width: 100%;
+        overflow-y: auto;
+        padding-bottom: 80px; /* space for bottom nav */
+    }
+
+    /* Top header mobile */
+    .top-header {
+        padding: 0 16px;
+        height: 56px;
+    }
+
+    .top-header .search-bar {
+        display: none;
+    }
+
+    .header-left .page-title h2 {
+        font-size: 1.1rem;
+    }
+
+    /* Header action buttons: smaller on mobile */
+    .header-actions {
+        gap: 6px;
+    }
+
+    .icon-action-btn {
+        width: 36px;
+        height: 36px;
+        font-size: 0.95rem;
+    }
+
+    .primary-btn {
+        padding: 8px 14px;
+        font-size: 0.85rem;
+        border-radius: 10px;
+    }
+
+    .primary-btn span { display: none; }
+
+    /* Welcome section */
+    .welcome-section {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+        padding: 16px;
+    }
+
+    .welcome-text h2 {
+        font-size: 1.3rem;
+    }
+
+    .welcome-text p {
+        font-size: 0.9rem;
+    }
+
+    /* Stats cards: horizontal scroll on mobile */
+    .stats-cards {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+    }
+
+    .stat-card {
+        padding: 16px 12px;
+    }
+
+    .stat-number {
+        font-size: 1.6rem;
+    }
+
+    /* Content wrapper */
+    .content-wrapper {
+        padding: 12px 16px;
+    }
+
+    /* AI assistant panel on home page */
+    .ai-assistant-panel {
+        margin: 0 0 16px 0;
+    }
+
+    /* Cards grid */
+    .recordings-grid {
+        grid-template-columns: 1fr;
+    }
+
+    /* ===================== */
+    /* NOTEPAD MOBILE LAYOUT */
+    /* ===================== */
+    .notepad-layout {
+        display: flex;
+        flex-direction: column;
+        height: auto;
+        overflow-y: visible;
+        padding: 0;
+        gap: 0;
+    }
+
+    .notepad-editor-col {
+        height: auto;
+        min-height: 60vh;
+    }
+
+    .editor-container {
+        border-radius: 0;
+        border-left: none;
+        border-right: none;
+        border-top: none;
+        padding: 0;
+    }
+
+    .notepad-title {
+        font-size: 1.2rem;
+        padding: 16px 16px 8px;
+    }
+
+    .editor-wrapper {
+        min-height: 45vh;
+    }
+
+    .smart-editor {
+        padding: 8px 16px 80px;
+        font-size: 0.95rem;
+        line-height: 1.7;
+    }
+
+    .editor-status {
+        flex-direction: column;
+        gap: 4px;
+        padding: 8px 16px;
+        font-size: 0.75rem;
+    }
+
+    .editor-status-right {
+        gap: 6px;
+    }
+
+    /* Notepad right sidebar: collapsible sections */
+    .notepad-sidebar-col {
+        height: auto;
+        overflow: visible;
+    }
+
+    .notepad-layout .notepad-sidebar-col {
+        height: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+        padding: 0 0 8px;
+    }
+
+    .np-ai-panel,
+    .np-history-panel {
+        border-radius: 0;
+        border-left: none;
+        border-right: none;
+        border-top: 1px solid var(--border-color);
+        border-bottom: none;
+        box-shadow: none;
+        min-height: unset;
+        height: auto;
+    }
+
+    .np-ai-panel .panel-header,
+    .np-history-panel .panel-header {
+        cursor: pointer;
+        padding: 14px 16px;
+    }
+
+    .np-history-panel {
+        max-height: 350px;
+    }
+
+    .np-history-list {
+        max-height: 250px;
+    }
+
+    /* Voice indicator */
+    .voice-indicator {
+        border-radius: 0;
+        margin: 0;
+        border-left: none;
+        border-right: none;
+    }
+
+    /* Suggestion tooltip: full width on mobile */
+    .suggestion-tooltip {
+        left: 8px;
+        right: 8px;
+        bottom: 56px;
+        width: auto;
+        max-width: none;
+    }
+
+    /* Delete modal */
+    .np-delete-modal {
+        width: 90%;
+        padding: 28px 20px;
+    }
+
+    /* Upgrade modal */
+    .upgrade-modal {
+        width: 90%;
+        padding: 32px 24px;
+    }
+
+    /* Recorder card */
+    .recorder-card {
+        padding: 28px 20px;
+        width: 92%;
+    }
+}
+
+/* ==========================================================================
+   Extra small screens (≤ 480px)
+   ========================================================================== */
+@media (max-width: 480px) {
+    .stats-cards {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .stat-card {
+        padding: 12px;
+    }
+
+    .stat-number {
+        font-size: 1.4rem;
+    }
+
+    .top-header {
+        height: 52px;
+    }
+
+    .smart-editor {
+        font-size: 0.9rem;
+    }
+
+    .notepad-title {
+        font-size: 1.1rem;
+    }
+
+    /* Icon action buttons: minimal */
+    .icon-action-btn {
+        width: 32px;
+        height: 32px;
+        font-size: 0.85rem;
+    }
+
+    .header-actions {
+        gap: 4px;
+    }
+
+    /* Bottom nav labels: hide on very small screens */
+    .mob-nav-item span {
+        display: none;
+    }
+
+    .mob-nav-item {
+        justify-content: center;
+    }
+
+    .mob-nav-item i {
+        font-size: 1.3rem;
+    }
+}
+
+/* Safe area insets for notched phones */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+    .mobile-bottom-nav {
+        height: calc(64px + env(safe-area-inset-bottom));
+    }
+
+    .main-content {
+        padding-bottom: calc(80px + env(safe-area-inset-bottom));
+    }
 }

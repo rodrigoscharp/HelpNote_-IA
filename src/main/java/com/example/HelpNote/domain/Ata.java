@@ -13,7 +13,10 @@ public class Ata {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    
+
+    @Column(name = "user_id")
+    private Long userId;
+
     private String title;
     
     @Column(columnDefinition = "TEXT")
@@ -32,6 +35,14 @@ public class Ata {
         this.transcription = transcription;
         this.summary = summary;
         this.uploadDateTime = uploadDateTime;
+    }
+
+    public Long getUserId() {
+        return userId;
+    }
+
+    public void setUserId(Long userId) {
+        this.userId = userId;
     }
 
     // Getters and Setters

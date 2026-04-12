@@ -12,6 +12,10 @@ public class Note {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @jakarta.persistence.Column(name = "user_id")
+    private Long userId;
+
     private String title;
     @jakarta.persistence.Column(columnDefinition = "TEXT")
     private String content; // New field for text-based notes
@@ -30,6 +34,14 @@ public class Note {
         this.title = title;
         this.audioFilePath = audioFilePath;
         this.uploadDateTime = uploadDateTime;
+    }
+
+    public Long getUserId() {
+        return userId;
+    }
+
+    public void setUserId(Long userId) {
+        this.userId = userId;
     }
 
     // Getters and Setters

@@ -20,6 +20,18 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // Show success message if came from registration
+    if (new URLSearchParams(window.location.search).get('registered')) {
+        const errorDiv = document.getElementById('authErrorMessage');
+        if (errorDiv) {
+            errorDiv.textContent = '✓ Conta criada com sucesso! Faça o login para continuar.';
+            errorDiv.classList.remove('hidden');
+            errorDiv.style.background = 'rgba(38,222,129,0.1)';
+            errorDiv.style.color = '#26de81';
+            errorDiv.style.borderColor = '#26de81';
+        }
+    }
+
     // Real Login Form Submit
     const loginForm = document.getElementById('loginForm');
     if (loginForm) {
@@ -57,18 +69,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
 
                 if (response.ok) {
-                    // Success! Redirect to dashboard
                     window.location.href = 'index.html';
                 } else {
-                    // Handle error (e.g. 401 Unauthorized)
-                    const errorMsg = await response.text();
-
+                    let errorMsg = "E-mail ou senha incorretos.";
+                    try {
+                        const data = await response.json();
+                        errorMsg = data.error || errorMsg;
+                    } catch {
+                        errorMsg = await response.text() || errorMsg;
+                    }
                     if (errorDiv) {
-                        errorDiv.textContent = errorMsg || "E-mail ou senha incorretos.";
+                        errorDiv.textContent = errorMsg;
                         errorDiv.classList.remove('hidden');
                     }
-
-                    // Reset button
                     btn.innerHTML = originalText;
                     btn.style.opacity = '1';
                     btn.disabled = false;

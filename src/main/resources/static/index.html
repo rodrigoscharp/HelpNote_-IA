@@ -12,6 +12,12 @@
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- PWA -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#6366f1">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="HelpNote IA">
     <!-- Main Style -->
     <link rel="stylesheet" href="css/style.css">
 </head>
@@ -368,20 +374,28 @@
                 <form id="profileForm" class="settings-form">
                     <div class="form-group">
                         <label for="userNameInput">Nome Completo</label>
-                        <input type="text" id="userNameInput" value="Rodrigo Scharp" placeholder="Seu nome">
+                        <input type="text" id="userNameInput" placeholder="Seu nome">
                     </div>
                     <div class="form-group">
                         <label for="userEmailInput">E-mail</label>
-                        <input type="email" id="userEmailInput" value="rodrigo@example.com" placeholder="seu@email.com">
+                        <input type="email" id="userEmailInput" placeholder="seu@email.com" disabled>
+                    </div>
+                </form>
+                <hr class="settings-divider">
+                <form id="passwordForm" class="settings-form">
+                    <h4 class="settings-section-title"><i class="fa-solid fa-lock"></i> Alterar Senha</h4>
+                    <div class="form-group">
+                        <label for="currentPasswordInput">Senha Atual</label>
+                        <div class="input-with-icon settings-pwd-wrap">
+                            <input type="password" id="currentPasswordInput" placeholder="••••••••">
+                            <button type="button" class="toggle-password" title="Mostrar senha"><i class="fa-regular fa-eye"></i></button>
+                        </div>
                     </div>
                     <div class="form-group">
-                        <label>Preferências</label>
-                        <div class="checkbox-group">
-                            <label class="switch-container">
-                                <input type="checkbox" checked>
-                                <span class="slider"></span>
-                                Notificações por E-mail
-                            </label>
+                        <label for="newPasswordInput">Nova Senha</label>
+                        <div class="input-with-icon settings-pwd-wrap">
+                            <input type="password" id="newPasswordInput" placeholder="Mínimo 6 caracteres">
+                            <button type="button" class="toggle-password" title="Mostrar senha"><i class="fa-regular fa-eye"></i></button>
                         </div>
                     </div>
                 </form>
@@ -391,6 +405,7 @@
                 <div id="settingsSuccessMsg" class="success-toast hidden">
                     <i class="fa-solid fa-circle-check"></i> Dados salvos com sucesso!
                 </div>
+                <div id="settingsErrorMsg" class="error-toast hidden"></div>
             </div>
         </div>
     </div>
@@ -426,6 +441,30 @@
             </div>
         </div>
     </div>
+
+    <!-- Mobile Bottom Navigation -->
+    <nav class="mobile-bottom-nav">
+        <a href="index.html" class="mob-nav-item active">
+            <i class="fa-solid fa-house"></i>
+            <span>Início</span>
+        </a>
+        <a href="smart-notepad.html" class="mob-nav-item">
+            <i class="fa-solid fa-pen-to-square"></i>
+            <span>Anotação</span>
+        </a>
+        <a href="#" id="mobAtaLink" class="mob-nav-item">
+            <i class="fa-solid fa-clipboard-list"></i>
+            <span>ATA</span>
+        </a>
+        <a href="pricing.html" class="mob-nav-item">
+            <i class="fa-solid fa-crown"></i>
+            <span>Planos</span>
+        </a>
+        <a href="#" id="mobSettingsLink" class="mob-nav-item">
+            <i class="fa-solid fa-gear"></i>
+            <span>Config</span>
+        </a>
+    </nav>
 
     <!-- Upgrade Modal Overlay -->
     <div id="upgradeOverlay" class="upgrade-overlay hidden">

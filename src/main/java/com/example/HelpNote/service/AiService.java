@@ -1,16 +1,26 @@
 package com.example.HelpNote.service;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.openai.OpenAiChatModel;
 import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.ai.openai.api.OpenAiApi;
 import org.springframework.beans.factory.annotation.Value;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.RestTemplate;
 
 import com.example.HelpNote.dto.AiSuggestionRequest;
 import com.example.HelpNote.dto.AiSuggestionResponse;
@@ -21,18 +31,60 @@ public class AiService {
     private static final Logger log = LoggerFactory.getLogger(AiService.class);
 
     private final ChatClient chatClient;
+    private final String groqApiKey;
+    private final RestTemplate restTemplate = new RestTemplate();
 
     public AiService(ChatClient.Builder chatClientBuilder, @Value("${spring.ai.openai.api-key}") String apiKey) {
-        // Groq base URL should be https://api.groq.com/openai (Spring AI appends /v1)
-        var openAiApi = new OpenAiApi("https://api.groq.com/openai", apiKey.trim());
-        
+        this.groqApiKey = apiKey.trim();
+        var openAiApi = new OpenAiApi("https://api.groq.com/openai", this.groqApiKey);
+
         var chatOptions = OpenAiChatOptions.builder()
                 .model("llama-3.3-70b-versatile")
                 .build();
-                
+
         var chatModel = new OpenAiChatModel(openAiApi, chatOptions);
-        
         this.chatClient = ChatClient.builder(chatModel).build();
+    }
+
+    /**
+     * Transcribes an audio file using Groq Whisper API.
+     */
+    public String transcribeAudio(Path audioFilePath, String originalFilename) throws IOException {
+        byte[] audioBytes = Files.readAllBytes(audioFilePath);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.MULTIPART_FORM_DATA);
+        headers.setBearerAuth(groqApiKey);
+
+        String filename = originalFilename != null ? originalFilename : "audio.mp3";
+
+        ByteArrayResource audioResource = new ByteArrayResource(audioBytes) {
+            @Override
+            public String getFilename() {
+                return filename;
+            }
+        };
+
+        MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+        body.add("file", audioResource);
+        body.add("model", "whisper-large-v3");
+        body.add("language", "pt");
+        body.add("response_format", "text");
+
+        HttpEntity<MultiValueMap<String, Object>> requestEntity = new HttpEntity<>(body, headers);
+
+        try {
+            String result = restTemplate.postForObject(
+                    "https://api.groq.com/openai/v1/audio/transcriptions",
+                    requestEntity,
+                    String.class
+            );
+            log.info("Transcrição concluída: {} chars", result != null ? result.length() : 0);
+            return result;
+        } catch (Exception e) {
+            log.error("Erro ao transcrever áudio: {}", e.getMessage());
+            throw new RuntimeException("Falha na transcrição de áudio: " + e.getMessage(), e);
+        }
     }
 
     public AiSuggestionResponse generateSuggestion(AiSuggestionRequest request) {
@@ -46,15 +98,16 @@ public class AiService {
                 1. keywords: até 3 palavras-chave que resumam o contexto do texto.
                 2. suggestedCompletion: uma sugestão CURTA (máximo 15 palavras) para continuar o texto naturalmente.
                 3. correctedText: reescreva o texto do usuário para que se torne uma anotação MUITO MELHOR e MAIS EXPLICATIVA. Melhore a clareza, a gramática, expanda levemente as ideias se necessário e deixe o texto mais profissional e completo.
-                
+                4. suggestedTitle: um título CURTO (máximo 5 palavras) que represente bem o tema principal do texto.
+
                 REGRAS IMPORTANTES:
                 - Responda SOMENTE com JSON puro, sem markdown, sem ```json, sem explicações.
                 - Use aspas duplas para strings.
                 - A sugestão deve ser uma continuação natural, não uma repetição.
                 - Em 'correctedText', entregue o texto totalmente reescrito e melhorado, não apenas correções ortográficas. Se o texto for apenas uma ou duas palavras, expanda em uma frase útil.
-                
+
                 Formato exato (retorne apenas as chaves e os dados em uma linha JSON compacta):
-                {"keywords":["palavra1","palavra2"],"suggestedCompletion":"continuação aqui","correctedText":"texto reescrito e mais explicativo aqui"}
+                {"keywords":["palavra1","palavra2"],"suggestedCompletion":"continuação aqui","correctedText":"texto reescrito e mais explicativo aqui","suggestedTitle":"Título da nota"}
                 """;
 
         String userPrompt = String.format("Título: %s\nTexto atual: %s",
@@ -109,8 +162,11 @@ public class AiService {
             // Extract correctedText
             String correctedText = extractJsonString(cleanJson, "correctedText");
 
+            String suggestedTitle = extractJsonString(cleanJson, "suggestedTitle");
+
             AiSuggestionResponse response = new AiSuggestionResponse(keywords, completion);
             response.setCorrectedText(correctedText.isEmpty() ? originalText : correctedText);
+            response.setSuggestedTitle(suggestedTitle.isEmpty() ? null : suggestedTitle);
             return response;
 
         } catch (Exception e) {

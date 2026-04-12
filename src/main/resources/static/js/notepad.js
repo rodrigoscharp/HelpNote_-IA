@@ -1,368 +1,576 @@
 /**
- * Logic for the Smart AI Notepad feature.
- * Uses Groq AI for real-time suggestions and text correction.
+ * Smart Notepad — full logic
+ * Features: AI suggestions, auto-save, edit/delete notes,
+ *           voice dictation, PDF export, copy, title suggestion, history search.
  */
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Mobile Sidebar Toggle Logic
+
+    /* ─── Mobile sidebar ─────────────────────────────────────── */
     const sidebar = document.querySelector('.sidebar');
     const menuToggle = document.getElementById('menuToggle');
-
     let overlay = document.querySelector('.sidebar-overlay');
     if (!overlay) {
         overlay = document.createElement('div');
         overlay.className = 'sidebar-overlay';
         document.body.appendChild(overlay);
     }
+    menuToggle?.addEventListener('click', () => {
+        sidebar.classList.toggle('active');
+        overlay.classList.toggle('active');
+    });
+    overlay?.addEventListener('click', () => {
+        sidebar.classList.remove('active');
+        overlay.classList.remove('active');
+    });
 
-    if (menuToggle) {
-        menuToggle.addEventListener('click', () => {
-            sidebar.classList.toggle('active');
-            overlay.classList.toggle('active');
-        });
-    }
-
-    if (overlay) {
-        overlay.addEventListener('click', () => {
-            sidebar.classList.remove('active');
-            overlay.classList.remove('active');
-        });
-    }
-
-    // Auth Check
-    const userProfileName = document.getElementById('userProfileName');
+    /* ─── Auth check ─────────────────────────────────────────── */
     fetch('/api/auth/me')
-        .then(response => {
-            if (!response.ok) {
-                window.location.href = 'login.html';
-                throw new Error("Não autenticado");
-            }
-            return response.json();
-        })
+        .then(r => { if (!r.ok) { window.location.href = 'login.html'; throw new Error(); } return r.json(); })
         .then(user => {
-            if (userProfileName) userProfileName.textContent = user.userName;
-            if (user.planType && typeof updatePlanBadge === 'function') {
-                updatePlanBadge(user.planType);
-            }
+            const nameEl = document.getElementById('userProfileName');
+            if (nameEl) nameEl.textContent = user.userName;
+            if (user.planType && typeof updatePlanBadge === 'function') updatePlanBadge(user.planType);
             if (typeof loadUsageStatus === 'function') loadUsageStatus();
+
+            // sidebar avatar
+            const savedAv = localStorage.getItem('helpnote_avatar');
+            if (typeof applySidebarAvatar === 'function') {
+                applySidebarAvatar(savedAv || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.userName || 'U')}&background=6366f1&color=fff&size=128`);
+            }
         })
-        .catch(err => console.log("Auth error:", err));
+        .catch(() => {});
 
-    // Handle Logout
-    const logoutBtn = document.getElementById('logoutBtn');
-    if (logoutBtn) {
-        logoutBtn.addEventListener('click', async () => {
-            try {
-                await fetch('/api/auth/logout', { method: 'POST' });
-                window.location.href = 'login.html';
-            } catch (err) {
-                console.error("Erro ao fazer logout", err);
-            }
-        });
-    }
+    /* ─── Logout ─────────────────────────────────────────────── */
+    document.getElementById('logoutBtn')?.addEventListener('click', async () => {
+        await fetch('/api/auth/logout', { method: 'POST' }).catch(() => {});
+        window.location.href = 'login.html';
+    });
 
-    // UI Elements
-    const editor = document.getElementById('smartEditor');
-    const wordCount = document.getElementById('wordCount');
-    const aiStatus = document.getElementById('aiStatus');
-    const emptyState = document.getElementById('aiEmptyState');
-    const activeState = document.getElementById('aiActiveState');
-    const keywordContainer = document.getElementById('keywordTagsContainer');
-    const suggestionTooltip = document.getElementById('suggestionTooltip');
+    /* ─── DOM refs ───────────────────────────────────────────── */
+    const editor        = document.getElementById('smartEditor');
+    const noteTitle     = document.getElementById('noteTitle');
+    const wordCountEl   = document.getElementById('wordCount');
+    const charCountEl   = document.getElementById('charCount');
+    const readingTimeEl = document.getElementById('readingTime');
+    const aiStatus      = document.getElementById('aiStatus');
+    const emptyState    = document.getElementById('aiEmptyState');
+    const activeState   = document.getElementById('aiActiveState');
+    const keywordContainer   = document.getElementById('keywordTagsContainer');
+    const suggestionTooltip  = document.getElementById('suggestionTooltip');
     const suggestionBoxContent = document.getElementById('suggestionBoxContent');
-    const correctionPanel = document.getElementById('correctionPanel');
+    const correctionPanel  = document.getElementById('correctionPanel');
     const correctionPreview = document.getElementById('correctionPreview');
-    const applyCorrectionBtn = document.getElementById('applyCorrectionBtn');
+    const applyCorrectionBtn  = document.getElementById('applyCorrectionBtn');
     const dismissCorrectionBtn = document.getElementById('dismissCorrectionBtn');
+    const backdrop    = document.getElementById('editorBackdrop');
+    const highlights  = document.getElementById('highlights');
 
-    // Ghost Text & Highlights elements (backdrop)
-    const backdrop = document.getElementById('editorBackdrop');
-    const highlights = document.getElementById('highlights');
-
-    let typingTimer;
-    const doneTypingInterval = 1200; // ms to wait after typing stops before calling API
-    let currentSuggestion = "";
-    let currentKeywords = [];
-    let currentCorrectedText = "";
+    /* ─── State ──────────────────────────────────────────────── */
+    let currentNoteId      = null;
+    let allNotes           = [];
+    let typingTimer        = null;
+    let autoSaveTimer      = null;
+    let isRequesting       = false;
+    let lastProcessedText  = '';
+    let currentSuggestion  = '';
+    let currentKeywords    = [];
+    let currentCorrectedText  = '';
     let currentParagraphStart = 0;
-    let currentParagraphEnd = 0;
-    let currentParagraphContent = "";
+    let currentParagraphEnd   = 0;
+    let isDictating        = false;
+    let voiceRecognition   = null;
+    let noteToDeleteId     = null;
 
-    let isRequesting = false;
-    let lastProcessedText = "";
+    const DRAFT_KEY = 'helpnote_draft';
+    const TYPING_DELAY  = 1200;
+    const AUTOSAVE_DELAY = 30000;
 
-    // Word Count & Input Handling
-    editor.addEventListener('input', () => {
-        const text = editor.value;
-        const trimmedText = text.trim();
-        const words = trimmedText ? trimmedText.split(/\s+/).length : 0;
-        wordCount.textContent = `${words} palavra${words !== 1 ? 's' : ''}`;
-
-        // Sync scroll immediately
-        if (backdrop) backdrop.scrollTop = editor.scrollTop;
-
-        // Debounce AI logic
-        clearTimeout(typingTimer);
-
-        // Only clear if the text has actually changed meaningfully
-        if (text !== lastProcessedText) {
-            clearSuggestions();
-            updateBackdrop();
-        }
-
-        if (trimmedText.length > 3) {
-            aiStatus.textContent = "Analisando...";
-            aiStatus.classList.add('analyzing');
-            typingTimer = setTimeout(fetchAiSuggestions, doneTypingInterval);
-        } else {
-            resetSidebar();
-            currentKeywords = [];
-            updateBackdrop();
-        }
-
-        lastProcessedText = text;
-    });
-
-    // Handle Tab key to accept suggestion
-    editor.addEventListener('keydown', (e) => {
-        if (e.key === 'Tab' && currentSuggestion) {
-            e.preventDefault();
-
-            // Append suggestion
-            editor.value += currentSuggestion;
-
-            // Clear current suggestion and trigger input event to update word count
-            clearSuggestions();
-            editor.dispatchEvent(new Event('input'));
-
-            // Move cursor to end
-            editor.selectionStart = editor.selectionEnd = editor.value.length;
-        }
-    });
-
-    // Make ghost text follow scrolling
-    editor.addEventListener('scroll', () => {
-        if (backdrop) backdrop.scrollTop = editor.scrollTop;
-    });
-
-    // Apply Correction Button
-    if (applyCorrectionBtn) {
-        applyCorrectionBtn.addEventListener('click', () => {
-            if (currentCorrectedText) {
-                const fullText = editor.value;
-                const beforeParagraph = fullText.substring(0, currentParagraphStart);
-                const afterParagraph = fullText.substring(currentParagraphEnd);
-                
-                // Replace ONLY the current paragraph with the corrected version
-                editor.value = beforeParagraph + currentCorrectedText + afterParagraph;
-                
-                lastProcessedText = editor.value;
-                currentCorrectedText = "";
-                hideCorrectionPanel();
-
-                // Update word count
-                const words = editor.value.trim() ? editor.value.trim().split(/\s+/).length : 0;
-                wordCount.textContent = `${words} palavra${words !== 1 ? 's' : ''}`;
-
-                // Show feedback
-                aiStatus.textContent = "Correção aplicada ✓";
-                setTimeout(() => {
-                    aiStatus.textContent = "Sincronizado";
-                }, 2000);
-
-                // Update backdrop to reflect changes
-                updateBackdrop();
-            }
-        });
+    /* ─── Helpers ────────────────────────────────────────────── */
+    function updateSaveStatus(msg, isGreen = false) {
+        const el = document.getElementById('saveStatus');
+        if (!el) return;
+        const icon = isGreen ? 'fa-circle-check' : 'fa-cloud';
+        el.innerHTML = `<i class="fa-solid ${icon}"></i> ${msg}`;
+        el.style.color = isGreen ? 'var(--secondary)' : 'var(--text-tertiary)';
     }
 
-    // Initial load of history
-    loadHistory();
-
-    // Dismiss Correction Button
-    if (dismissCorrectionBtn) {
-        dismissCorrectionBtn.addEventListener('click', () => {
-            currentCorrectedText = "";
-            hideCorrectionPanel();
-        });
+    function setEditMode(noteId) {
+        currentNoteId = noteId;
+        document.getElementById('pageTitle').textContent = 'Editando Nota';
+        document.getElementById('editModeIndicator')?.classList.remove('hidden');
+        const pdfBtn = document.getElementById('exportPdfBtn');
+        if (pdfBtn) pdfBtn.disabled = false;
     }
 
-    // Save Note Button
-    const saveNoteBtn = document.getElementById('saveNoteBtn');
-    if (saveNoteBtn) {
-        saveNoteBtn.addEventListener('click', async () => {
-            const title = document.getElementById('noteTitle')?.value || 'Sem Título';
-            const content = editor.value;
-
-            if (!content.trim()) {
-                alert('Escreva algo antes de salvar.');
-                return;
-            }
-
-            saveNoteBtn.disabled = true;
-            saveNoteBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Salvando...';
-
-            try {
-                const formData = new URLSearchParams();
-                formData.append('title', title);
-                formData.append('content', content);
-
-                const response = await fetch('/api/notes', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                    body: formData.toString()
-                });
-
-                if (response.status === 403) {
-                    const errorData = await response.json();
-                    if (errorData.upgradeRequired) {
-                        if (typeof showUpgradeModal === 'function') {
-                            showUpgradeModal(errorData.error);
-                        } else {
-                            // Fallback: show the overlay directly
-                            const overlay = document.getElementById('upgradeOverlay');
-                            const msgEl = document.getElementById('upgradeMessage');
-                            if (overlay) {
-                                if (msgEl) msgEl.innerHTML = errorData.error + ' Faça upgrade para o <strong>Premium</strong> por apenas <strong>R$ 9,99/mês</strong> e tenha acesso ilimitado!';
-                                overlay.classList.remove('hidden');
-                            }
-                        }
-                    }
-                    return;
-                }
-
-                if (response.ok) {
-                    const saveStatus = document.getElementById('saveStatus');
-                    if (saveStatus) saveStatus.textContent = 'Salvo com sucesso! ✓';
-                    // Refresh history
-                    loadHistory();
-                    // Refresh usage counters
-                    if (typeof loadUsageStatus === 'function') loadUsageStatus();
-                    setTimeout(() => {
-                        if (saveStatus) saveStatus.textContent = 'Rascunho salvo';
-                    }, 3000);
-                } else {
-                    alert('Erro ao salvar a anotação.');
-                }
-            } catch (error) {
-                console.error("Erro ao salvar:", error);
-                alert('Erro de conexão ao salvar.');
-            } finally {
-                saveNoteBtn.disabled = false;
-                saveNoteBtn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> <span>Salvar Anotação</span>';
-            }
-        });
+    function clearEditMode() {
+        currentNoteId = null;
+        document.getElementById('pageTitle').textContent = 'Nova Anotação';
+        document.getElementById('editModeIndicator')?.classList.add('hidden');
+        const pdfBtn = document.getElementById('exportPdfBtn');
+        if (pdfBtn) pdfBtn.disabled = true;
     }
 
     function resetSidebar() {
-        emptyState.classList.remove('hidden');
-        activeState.classList.add('hidden');
-        aiStatus.textContent = "Ouvindo...";
-        aiStatus.classList.remove('analyzing');
+        emptyState?.classList.remove('hidden');
+        activeState?.classList.add('hidden');
+        if (aiStatus) { aiStatus.textContent = 'Ouvindo…'; aiStatus.classList.remove('analyzing'); }
         hideCorrectionPanel();
     }
 
     function clearSuggestions() {
-        currentSuggestion = "";
-        suggestionTooltip.classList.add('hidden');
+        currentSuggestion = '';
+        suggestionTooltip?.classList.add('hidden');
     }
 
     function hideCorrectionPanel() {
-        if (correctionPanel) correctionPanel.classList.add('hidden');
+        correctionPanel?.classList.add('hidden');
     }
 
-    async function fetchAiSuggestions() {
-        if (isRequesting) return;
+    /* ─── Auto-save to localStorage ─────────────────────────── */
+    function saveDraft() {
+        const content = editor?.value || '';
+        if (!content.trim()) return;
+        localStorage.setItem(DRAFT_KEY, JSON.stringify({
+            title: noteTitle?.value || '',
+            content,
+            noteId: currentNoteId
+        }));
+        updateSaveStatus('Rascunho salvo automaticamente');
+        setTimeout(() => updateSaveStatus('Rascunho salvo', false), 2000);
+    }
 
-        const fullText = editor.value;
-        const selectionStart = editor.selectionStart;
+    function restoreDraft() {
+        try {
+            const raw = localStorage.getItem(DRAFT_KEY);
+            if (!raw) return;
+            const { title, content, noteId } = JSON.parse(raw);
+            if (!content?.trim()) return;
+            if (noteTitle) noteTitle.value = title || '';
+            if (editor) {
+                editor.value = content;
+                editor.dispatchEvent(new Event('input'));
+            }
+            if (noteId) setEditMode(noteId);
+            updateSaveStatus('Rascunho restaurado');
+        } catch (e) {}
+    }
 
-        // Find current paragraph boundaries based on cursor position
-        // We look for double newlines (paragraphs) or single newlines if they're used as paragraph breaks
-        let start = fullText.lastIndexOf('\n\n', selectionStart - 1);
-        if (start === -1) {
-            start = 0;
+    autoSaveTimer = setInterval(saveDraft, AUTOSAVE_DELAY);
+
+    /* ─── Editor input ───────────────────────────────────────── */
+    editor?.addEventListener('input', () => {
+        const text  = editor.value;
+        const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+        const chars = text.length;
+        const mins  = Math.max(1, Math.ceil(words / 200));
+
+        if (wordCountEl)   wordCountEl.textContent   = `${words} palavra${words !== 1 ? 's' : ''}`;
+        if (charCountEl)   charCountEl.textContent   = `${chars} caractere${chars !== 1 ? 's' : ''}`;
+        if (readingTimeEl) readingTimeEl.textContent = `~${mins} min de leitura`;
+
+        if (backdrop) backdrop.scrollTop = editor.scrollTop;
+
+        clearTimeout(typingTimer);
+        if (text !== lastProcessedText) { clearSuggestions(); updateBackdrop(); }
+
+        if (text.trim().length > 3) {
+            if (aiStatus) { aiStatus.textContent = 'Analisando…'; aiStatus.classList.add('analyzing'); }
+            typingTimer = setTimeout(fetchAiSuggestions, TYPING_DELAY);
         } else {
-            start += 2; // Move past the double newline
-        }
-
-        let end = fullText.indexOf('\n\n', selectionStart);
-        if (end === -1) {
-            end = fullText.length;
-        }
-
-        const paragraphText = fullText.substring(start, end).trim();
-        
-        // Save indices for later replacement if user applies correction
-        currentParagraphStart = start;
-        currentParagraphEnd = end;
-        currentParagraphContent = paragraphText;
-
-        if (!paragraphText || paragraphText.length < 3) {
             resetSidebar();
             currentKeywords = [];
             updateBackdrop();
+        }
+        lastProcessedText = text;
+    });
+
+    /* ─── Tab → accept suggestion ────────────────────────────── */
+    editor?.addEventListener('keydown', e => {
+        if (e.key === 'Tab' && currentSuggestion) {
+            e.preventDefault();
+            editor.value += currentSuggestion;
+            clearSuggestions();
+            editor.dispatchEvent(new Event('input'));
+            editor.selectionStart = editor.selectionEnd = editor.value.length;
+        }
+    });
+
+    editor?.addEventListener('scroll', () => { if (backdrop) backdrop.scrollTop = editor.scrollTop; });
+
+    /* ─── Correction panel ───────────────────────────────────── */
+    applyCorrectionBtn?.addEventListener('click', () => {
+        if (!currentCorrectedText) return;
+        const full   = editor.value;
+        editor.value = full.substring(0, currentParagraphStart) + currentCorrectedText + full.substring(currentParagraphEnd);
+        lastProcessedText = editor.value;
+        currentCorrectedText = '';
+        hideCorrectionPanel();
+        editor.dispatchEvent(new Event('input'));
+        if (aiStatus) aiStatus.textContent = 'Correção aplicada ✓';
+        setTimeout(() => { if (aiStatus) aiStatus.textContent = 'Sincronizado'; }, 2000);
+        updateBackdrop();
+    });
+
+    dismissCorrectionBtn?.addEventListener('click', () => {
+        currentCorrectedText = '';
+        hideCorrectionPanel();
+    });
+
+    /* ─── Title suggestion ───────────────────────────────────── */
+    document.getElementById('applyTitleBtn')?.addEventListener('click', () => {
+        const suggested = document.getElementById('suggestedTitleText')?.textContent;
+        if (suggested && noteTitle) {
+            noteTitle.value = suggested;
+            document.getElementById('titleSuggestionBox')?.classList.add('hidden');
+        }
+    });
+
+    /* ─── Save note ──────────────────────────────────────────── */
+    const saveNoteBtn = document.getElementById('saveNoteBtn');
+    saveNoteBtn?.addEventListener('click', async () => {
+        const title   = noteTitle?.value?.trim() || 'Sem Título';
+        const content = editor?.value || '';
+
+        if (!content.trim()) { alert('Escreva algo antes de salvar.'); return; }
+
+        saveNoteBtn.disabled = true;
+        saveNoteBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Salvando…';
+
+        const params = new URLSearchParams({ title, content });
+        const isEdit = !!currentNoteId;
+        const url    = isEdit ? `/api/notes/${currentNoteId}` : '/api/notes';
+        const method = isEdit ? 'PUT' : 'POST';
+
+        try {
+            const response = await fetch(url, {
+                method,
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: params.toString()
+            });
+
+            if (response.status === 401) {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            if (response.status === 403) {
+                const err = await response.json();
+                if (err.upgradeRequired && typeof showUpgradeModal === 'function') {
+                    showUpgradeModal(err.error);
+                } else {
+                    alert(err.error || 'Limite de uso atingido.');
+                }
+                return;
+            }
+
+            if (response.ok) {
+                const saved = await response.json();
+                setEditMode(saved.id);
+                localStorage.removeItem(DRAFT_KEY);
+                updateSaveStatus('Salvo com sucesso ✓', true);
+                loadHistory();
+                if (typeof loadUsageStatus === 'function') loadUsageStatus();
+                setTimeout(() => updateSaveStatus('Sincronizado', true), 3000);
+            } else {
+                const body = await response.json().catch(() => ({}));
+                alert(body.error || 'Erro ao salvar a anotação.');
+            }
+        } catch (err) {
+            console.error(err);
+            alert('Erro de conexão ao salvar.');
+        } finally {
+            saveNoteBtn.disabled = false;
+            saveNoteBtn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> <span>Salvar</span>';
+        }
+    });
+
+    /* ─── New note ───────────────────────────────────────────── */
+    document.getElementById('newNoteBtn')?.addEventListener('click', () => {
+        if (editor?.value.trim() && !confirm('Descartar a nota atual e começar uma nova?')) return;
+        clearEditMode();
+        if (editor)    editor.value = '';
+        if (noteTitle) noteTitle.value = '';
+        editor?.dispatchEvent(new Event('input'));
+        localStorage.removeItem(DRAFT_KEY);
+        updateSaveStatus('Nova nota');
+        document.querySelectorAll('.np-note-item').forEach(el => el.classList.remove('active'));
+    });
+
+    /* ─── Copy to clipboard ──────────────────────────────────── */
+    document.getElementById('copyNoteBtn')?.addEventListener('click', async () => {
+        const content = editor?.value || '';
+        if (!content.trim()) { alert('Não há conteúdo para copiar.'); return; }
+        try {
+            await navigator.clipboard.writeText(content);
+            const btn = document.getElementById('copyNoteBtn');
+            btn.innerHTML = '<i class="fa-solid fa-check"></i>';
+            btn.style.color = 'var(--secondary)';
+            setTimeout(() => { btn.innerHTML = '<i class="fa-solid fa-copy"></i>'; btn.style.color = ''; }, 2000);
+        } catch {
+            alert('Não foi possível copiar. Selecione o texto manualmente.');
+        }
+    });
+
+    /* ─── Export PDF ─────────────────────────────────────────── */
+    document.getElementById('exportPdfBtn')?.addEventListener('click', () => {
+        if (currentNoteId) {
+            window.location.href = `/api/notes/${currentNoteId}/pdf`;
+        } else {
+            alert('Salve a nota primeiro para exportar como PDF.');
+        }
+    });
+
+    /* ─── Voice dictation ────────────────────────────────────── */
+    const voiceNoteBtn    = document.getElementById('voiceNoteBtn');
+    const voiceIndicator  = document.getElementById('voiceIndicator');
+    const stopVoiceBtn    = document.getElementById('stopVoiceBtn');
+
+    function startVoiceDictation() {
+        const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SR) { alert('Seu navegador não suporta ditado por voz. Use Chrome ou Edge.'); return; }
+
+        voiceRecognition = new SR();
+        voiceRecognition.continuous     = true;
+        voiceRecognition.interimResults = false;
+        voiceRecognition.lang           = 'pt-BR';
+
+        voiceRecognition.onstart = () => {
+            isDictating = true;
+            voiceNoteBtn?.classList.add('recording');
+            voiceIndicator?.classList.remove('hidden');
+        };
+
+        voiceRecognition.onresult = event => {
+            for (let i = event.resultIndex; i < event.results.length; i++) {
+                if (event.results[i].isFinal) {
+                    const t = event.results[i][0].transcript.trim();
+                    if (editor) {
+                        editor.value += (editor.value && !editor.value.endsWith(' ') ? ' ' : '') + t;
+                        editor.dispatchEvent(new Event('input'));
+                    }
+                }
+            }
+        };
+
+        voiceRecognition.onerror = e => console.error('Voice error:', e.error);
+
+        voiceRecognition.onend = () => {
+            isDictating = false;
+            voiceNoteBtn?.classList.remove('recording');
+            voiceIndicator?.classList.add('hidden');
+        };
+
+        voiceRecognition.start();
+    }
+
+    function stopVoiceDictation() {
+        voiceRecognition?.stop();
+    }
+
+    voiceNoteBtn?.addEventListener('click', () => {
+        if (isDictating) stopVoiceDictation();
+        else startVoiceDictation();
+    });
+    stopVoiceBtn?.addEventListener('click', stopVoiceDictation);
+
+    /* ─── History ────────────────────────────────────────────── */
+    async function loadHistory() {
+        try {
+            const res = await fetch('/api/notes');
+            if (res.status === 401) { window.location.href = 'login.html'; return; }
+            if (res.ok) {
+                allNotes = await res.json();
+                const countEl = document.getElementById('notesCount');
+                if (countEl) countEl.textContent = allNotes.length;
+                renderHistoryPanel(allNotes);
+            }
+        } catch (e) {
+            console.error('Erro ao carregar histórico:', e);
+        }
+    }
+
+    document.getElementById('noteHistorySearch')?.addEventListener('input', e => {
+        const term = e.target.value.toLowerCase();
+        const filtered = allNotes.filter(n =>
+            (n.title || '').toLowerCase().includes(term) ||
+            (n.content || '').toLowerCase().includes(term)
+        );
+        renderHistoryPanel(filtered);
+    });
+
+    function renderHistoryPanel(notes) {
+        const list = document.getElementById('notesHistoryList');
+        if (!list) return;
+
+        if (!notes || notes.length === 0) {
+            list.innerHTML = '<div class="empty-state" style="padding:16px;"><p>Nenhuma nota encontrada.</p></div>';
             return;
         }
+
+        list.innerHTML = '';
+        notes.forEach(note => {
+            const date = new Date(note.uploadDateTime).toLocaleString('pt-BR', {
+                day: '2-digit', month: '2-digit', year: '2-digit',
+                hour: '2-digit', minute: '2-digit'
+            });
+            const preview = (note.content || '').substring(0, 60).trim();
+
+            const item = document.createElement('div');
+            item.className = 'np-note-item' + (note.id === currentNoteId ? ' active' : '');
+            item.dataset.id = note.id;
+            item.innerHTML = `
+                <div class="np-note-body">
+                    <div class="np-note-icon"><i class="fa-solid fa-file-lines"></i></div>
+                    <div class="np-note-info">
+                        <span class="np-note-title">${note.title || 'Sem Título'}</span>
+                        <span class="np-note-meta">${date}${preview ? ' · ' + preview + '…' : ''}</span>
+                    </div>
+                </div>
+                <button class="np-delete-btn" title="Excluir nota">
+                    <i class="fa-solid fa-trash-can"></i>
+                </button>
+            `;
+
+            item.querySelector('.np-note-body').addEventListener('click', () => loadNoteIntoEditor(note));
+            item.querySelector('.np-delete-btn').addEventListener('click', e => {
+                e.stopPropagation();
+                showDeleteConfirm(note.id);
+            });
+
+            list.appendChild(item);
+        });
+    }
+
+    /* ─── Load note into editor ──────────────────────────────── */
+    function loadNoteIntoEditor(note) {
+        if (noteTitle) noteTitle.value = note.title || '';
+        if (editor) {
+            editor.value = note.content || '';
+            editor.dispatchEvent(new Event('input'));
+            editor.scrollTop = 0;
+            editor.focus();
+        }
+        setEditMode(note.id);
+        localStorage.setItem(DRAFT_KEY, JSON.stringify({
+            title: note.title, content: note.content, noteId: note.id
+        }));
+        document.querySelectorAll('.np-note-item').forEach(el => el.classList.remove('active'));
+        document.querySelector(`.np-note-item[data-id="${note.id}"]`)?.classList.add('active');
+        updateSaveStatus('Nota carregada', true);
+    }
+
+    // Expose for script.js history overlay
+    window.loadNoteForEdit = loadNoteIntoEditor;
+
+    /* ─── Delete ─────────────────────────────────────────────── */
+    function showDeleteConfirm(id) {
+        noteToDeleteId = id;
+        document.getElementById('deleteConfirmOverlay')?.classList.remove('hidden');
+    }
+
+    document.getElementById('confirmDeleteBtn')?.addEventListener('click', async () => {
+        if (!noteToDeleteId) return;
+        try {
+            const res = await fetch(`/api/notes/${noteToDeleteId}`, { method: 'DELETE' });
+            if (res.ok) {
+                if (currentNoteId === noteToDeleteId) {
+                    clearEditMode();
+                    if (editor)    editor.value = '';
+                    if (noteTitle) noteTitle.value = '';
+                    editor?.dispatchEvent(new Event('input'));
+                    localStorage.removeItem(DRAFT_KEY);
+                    updateSaveStatus('Nota excluída');
+                }
+                loadHistory();
+            } else {
+                alert('Erro ao excluir nota.');
+            }
+        } catch {
+            alert('Erro de conexão.');
+        } finally {
+            document.getElementById('deleteConfirmOverlay')?.classList.add('hidden');
+            noteToDeleteId = null;
+        }
+    });
+
+    document.getElementById('cancelDeleteBtn')?.addEventListener('click', () => {
+        document.getElementById('deleteConfirmOverlay')?.classList.add('hidden');
+        noteToDeleteId = null;
+    });
+
+    /* ─── AI suggestions ─────────────────────────────────────── */
+    async function fetchAiSuggestions() {
+        if (isRequesting) return;
+
+        const fullText  = editor?.value || '';
+        const cursor    = editor?.selectionStart || fullText.length;
+
+        let start = fullText.lastIndexOf('\n\n', cursor - 1);
+        start = start === -1 ? 0 : start + 2;
+        let end = fullText.indexOf('\n\n', cursor);
+        if (end === -1) end = fullText.length;
+
+        const paragraphText = fullText.substring(start, end).trim();
+        currentParagraphStart = start;
+        currentParagraphEnd   = end;
+
+        if (!paragraphText || paragraphText.length < 3) { resetSidebar(); currentKeywords = []; updateBackdrop(); return; }
 
         isRequesting = true;
 
         try {
-            const title = document.getElementById('noteTitle')?.value || '';
-
-            const response = await fetch('/api/ai/suggest', {
+            const title = noteTitle?.value || '';
+            const res   = await fetch('/api/ai/suggest', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ text: paragraphText, title: title })
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text: paragraphText, title })
             });
 
-            if (response.ok) {
-                const data = await response.json();
+            if (res.ok) {
+                const data = await res.json();
 
-                // Update UI State
-                aiStatus.textContent = "Sincronizado";
-                aiStatus.classList.remove('analyzing');
-                emptyState.classList.add('hidden');
-                activeState.classList.remove('hidden');
+                if (aiStatus) { aiStatus.textContent = 'Sincronizado'; aiStatus.classList.remove('analyzing'); }
+                emptyState?.classList.add('hidden');
+                activeState?.classList.remove('hidden');
 
-                // Render Keywords
+                // Keywords
                 currentKeywords = data.keywords || [];
                 renderKeywords(currentKeywords);
 
-                // Render Suggestion if available
-                if (data.suggestedCompletion && data.suggestedCompletion.trim().length > 0) {
-                    currentSuggestion = data.suggestedCompletion;
-
-                    // Show the floating tooltip box
-                    suggestionBoxContent.textContent = currentSuggestion;
-                    suggestionTooltip.classList.remove('hidden');
-                    suggestionTooltip.style.animation = 'slideUp 0.3s ease-out';
+                // Title suggestion (only when title is empty or default)
+                const currentTitleVal = noteTitle?.value?.trim() || '';
+                if (data.suggestedTitle && (!currentTitleVal || currentTitleVal === 'Nova Reunião')) {
+                    const titleBox = document.getElementById('titleSuggestionBox');
+                    const titleText = document.getElementById('suggestedTitleText');
+                    if (titleBox && titleText) {
+                        titleText.textContent = data.suggestedTitle;
+                        titleBox.classList.remove('hidden');
+                    }
                 }
 
-                // Show correction panel if text was corrected
-                if (data.correctedText && data.correctedText.trim().length > 0 
-                    && data.correctedText !== paragraphText 
-                    && data.correctedText.trim() !== paragraphText.trim()) {
+                // Suggestion (ghost text)
+                if (data.suggestedCompletion?.trim()) {
+                    currentSuggestion = data.suggestedCompletion;
+                    if (suggestionBoxContent) suggestionBoxContent.textContent = currentSuggestion;
+                    suggestionTooltip?.classList.remove('hidden');
+                }
+
+                // Correction
+                if (data.correctedText?.trim() && data.correctedText.trim() !== paragraphText.trim()) {
                     currentCorrectedText = data.correctedText;
                     showCorrectionPanel(paragraphText, currentCorrectedText);
                 } else {
                     hideCorrectionPanel();
                 }
 
-                // Update the backdrop to show new keywords and ghost text
                 updateBackdrop();
             } else {
-                const errText = await response.text();
-                console.error("Erro da API de IA:", response.status, errText);
-                aiStatus.textContent = "Erro na IA";
-                aiStatus.classList.remove('analyzing');
+                if (aiStatus) { aiStatus.textContent = 'Erro na IA'; aiStatus.classList.remove('analyzing'); }
             }
-        } catch (error) {
-            console.error("Erro ao obter sugestões da IA", error);
-            aiStatus.textContent = "Erro de conexão";
-            aiStatus.classList.remove('analyzing');
+        } catch (e) {
+            console.error('Erro ao obter sugestões:', e);
+            if (aiStatus) { aiStatus.textContent = 'Erro de conexão'; aiStatus.classList.remove('analyzing'); }
         } finally {
             isRequesting = false;
         }
@@ -370,147 +578,75 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function showCorrectionPanel(original, corrected) {
         if (!correctionPanel || !correctionPreview) return;
-
-        // Create a diff-like display highlighting what changed
-        correctionPreview.innerHTML = highlightDifferences(original, corrected);
+        correctionPreview.innerHTML = highlightDiff(original, corrected);
         correctionPanel.classList.remove('hidden');
-        correctionPanel.style.animation = 'slideUp 0.3s ease-out';
     }
 
-    function highlightDifferences(original, corrected) {
-        // Split into words and show changes
+    function highlightDiff(original, corrected) {
         const origWords = original.split(/(\s+)/);
         const corrWords = corrected.split(/(\s+)/);
-        
         let result = '';
-        const maxLen = Math.max(origWords.length, corrWords.length);
-        
-        for (let i = 0; i < maxLen; i++) {
-            const origWord = origWords[i] || '';
-            const corrWord = corrWords[i] || '';
-            
-            if (origWord !== corrWord) {
-                if (origWord.trim()) {
-                    result += `<span class="diff-removed">${origWord}</span>`;
-                }
-                if (corrWord.trim()) {
-                    result += `<span class="diff-added">${corrWord}</span>`;
-                } else if (!corrWord.trim() && !origWord.trim()) {
-                    result += corrWord || origWord;
-                }
+        const max = Math.max(origWords.length, corrWords.length);
+        for (let i = 0; i < max; i++) {
+            const o = origWords[i] || '';
+            const c = corrWords[i] || '';
+            if (o !== c) {
+                if (o.trim()) result += `<span class="diff-removed">${o}</span>`;
+                if (c.trim()) result += `<span class="diff-added">${c}</span>`;
+                else if (!c.trim() && !o.trim()) result += c || o;
             } else {
-                result += corrWord;
+                result += c;
             }
         }
-        
         return result;
     }
 
     function renderKeywords(keywords) {
-        if (!keywords || keywords.length === 0) return;
-
+        if (!keywordContainer || !keywords?.length) return;
         keywordContainer.innerHTML = '';
         keywords.forEach(kw => {
             const span = document.createElement('span');
             span.className = 'keyword-tag';
             span.textContent = kw;
-            span.style.animation = "fadeIn 0.3s ease-in forwards";
+            span.style.animation = 'fadeIn 0.3s ease-in forwards';
             keywordContainer.appendChild(span);
         });
     }
 
     function updateBackdrop() {
         if (!highlights) return;
+        let text = editor?.value || '';
+        let html = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
-        let text = editor.value;
-        let highlighted = text
-            .replace(/&/g, "&amp;")
-            .replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;");
-
-        // Apply keywords highlighting (case insensitive)
-        if (currentKeywords && currentKeywords.length > 0) {
+        if (currentKeywords?.length) {
             currentKeywords.forEach(kw => {
-                if (kw.trim().length === 0) return;
-                const safeKw = kw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-                const regex = new RegExp(`(${safeKw})`, 'gi');
-                highlighted = highlighted.replace(regex, `<mark>$1</mark>`);
+                if (!kw.trim()) return;
+                const safe  = kw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                const regex = new RegExp(`(${safe})`, 'gi');
+                html = html.replace(regex, '<mark>$1</mark>');
             });
         }
 
-        // CSS hack for exact height matching
-        if (highlighted.endsWith('\n')) {
-            highlighted += '\n';
-        }
+        if (html.endsWith('\n')) html += '\n';
 
-        // Append ghost text if present
-        if (currentSuggestion) {
-            highlights.innerHTML = highlighted + `<span class="ghost-text">${currentSuggestion}</span>`;
-        } else {
-            highlights.innerHTML = highlighted;
-        }
+        highlights.innerHTML = currentSuggestion
+            ? html + `<span class="ghost-text">${currentSuggestion}</span>`
+            : html;
 
-        // Sync scroll
-        backdrop.scrollTop = editor.scrollTop;
+        if (backdrop) backdrop.scrollTop = editor?.scrollTop || 0;
     }
 
-    async function loadHistory() {
-        const historyList = document.getElementById('notesHistoryList');
-        if (!historyList) return;
-
-        try {
-            const response = await fetch('/api/notes');
-            if (response.ok) {
-                const notes = await response.json();
-                renderHistory(notes);
-            }
-        } catch (error) {
-            console.error("Erro ao carregar histórico:", error);
-        }
-    }
-
-    function renderHistory(notes) {
-        const historyList = document.getElementById('notesHistoryList');
-        if (!historyList) return;
-
-        if (!notes || notes.length === 0) {
-            historyList.innerHTML = '<div class="empty-state"><p>Nenhuma nota salva ainda.</p></div>';
-            return;
-        }
-
-        historyList.innerHTML = '';
-        notes.forEach(note => {
-            const date = new Date(note.uploadDateTime).toLocaleDateString('pt-BR', {
-                day: '2-digit',
-                month: '2-digit',
-                year: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
-            });
-
-            const card = document.createElement('div');
-            card.className = 'note-card';
-            card.style.padding = '12px';
-            card.style.marginBottom = '8px';
-            card.style.fontSize = '0.9rem';
-            
-            card.innerHTML = `
-                <div class="note-icon" style="width: 32px; height: 32px; font-size: 0.8rem;">
-                    <i class="fa-solid fa-file-lines"></i>
-                </div>
-                <div class="note-details">
-                    <h4 style="font-size: 0.9rem; margin-bottom: 2px;">${note.title || 'Sem Título'}</h4>
-                    <span class="note-meta" style="font-size: 0.75rem;">${date}</span>
-                </div>
-            `;
-            
-            card.addEventListener('click', () => {
-                document.getElementById('noteTitle').value = note.title;
-                editor.value = note.content;
-                editor.dispatchEvent(new Event('input'));
-            });
-
-            historyList.appendChild(card);
+    /* ─── Mobile nav wiring ──────────────────────────────────── */
+    const mobSettingsLink = document.getElementById('mobSettingsLink');
+    if (mobSettingsLink) {
+        mobSettingsLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            const settingsLink = document.getElementById('settingsMenuLink');
+            if (settingsLink) settingsLink.click();
         });
     }
+
+    /* ─── Init ───────────────────────────────────────────────── */
+    restoreDraft();
+    loadHistory();
 });

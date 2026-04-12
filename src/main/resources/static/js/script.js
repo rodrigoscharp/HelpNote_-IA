@@ -51,12 +51,19 @@ function initializeMainApp() {
                 userProfileName.textContent = user.userName;
             }
             updateGreeting(user.userName);
-            // Update plan badge from auth response
             if (user.planType) {
                 updatePlanBadge(user.planType);
             }
-            // Load usage status
             loadUsageStatus();
+
+            // Initialize sidebar avatar: custom photo takes priority over generated
+            const savedAv = localStorage.getItem('helpnote_avatar');
+            if (savedAv) {
+                applySidebarAvatar(savedAv);
+            } else {
+                // Generate avatar from name as fallback
+                applySidebarAvatar(`https://ui-avatars.com/api/?name=${encodeURIComponent(user.userName || 'U')}&background=6c5ce7&color=fff&size=128`);
+            }
         })
         .catch(err => console.log("Auth session exception:", err));
 
@@ -530,26 +537,24 @@ function initializeMainApp() {
                 body: params
             });
 
+            if (response.status === 401) { window.location.href = 'login.html'; return; }
+
             if (response.status === 403) {
                 const errorData = await response.json();
-                if (errorData.upgradeRequired) {
-                    showUpgradeModal(errorData.error);
-                }
+                if (errorData.upgradeRequired) showUpgradeModal(errorData.error);
                 return;
             }
 
             if (response.ok) {
                 const savedNote = await response.json();
                 console.log("Ata salva com sucesso! ID:", savedNote.id);
-                
-                // Show a small toast or scroll
                 loadRecentRecordings();
                 if (typeof fetchHistory === 'function') fetchHistory();
-                loadUsageStatus(); // Refresh usage counters
+                loadUsageStatus();
             } else {
-                const errorText = await response.text();
-                console.error("Erro ao salvar ata. Status:", response.status, "Mensagem:", errorText);
-                alert("Erro ao salvar ata no servidor. Verifique o console.");
+                let msg = "Erro ao salvar ata no servidor.";
+                try { const d = await response.json(); msg = d.error || msg; } catch {}
+                alert(msg);
             }
         } catch (error) {
             console.error("Erro na requisição de salvamento:", error);
@@ -562,6 +567,7 @@ function initializeMainApp() {
 
         try {
             const response = await fetch('/api/atas');
+            if (response.status === 401) { window.location.href = 'login.html'; return; }
             if (response.ok) {
                 const atas = await response.json();
                 renderRecentRecordings(atas);
@@ -768,6 +774,11 @@ function initializeMainApp() {
                 fetch('/api/atas')
             ]);
 
+            if (notesRes.status === 401 || atasRes.status === 401) {
+                window.location.href = 'login.html';
+                return;
+            }
+
             const notes = notesRes.ok ? await notesRes.json() : [];
             const atas = atasRes.ok ? await atasRes.json() : [];
 
@@ -841,20 +852,21 @@ function initializeMainApp() {
             div.addEventListener('click', () => {
                 if (window.location.pathname.includes('smart-notepad.html')) {
                     if (item.type === 'note') {
-                        // Load into the smart editor
-                        const noteTitle = document.getElementById('noteTitle');
-                        const smartEditor = document.getElementById('smartEditor');
-                        if (noteTitle) noteTitle.value = item.title;
-                        if (smartEditor) {
-                            // We need the full original note object to get full content
-                            // For now we'll fetch just this note or use a broader fetch
-                            fetch(`/api/notes/${item.id}`)
-                                .then(res => res.json())
-                                .then(note => {
-                                    smartEditor.value = note.content || "";
-                                    smartEditor.dispatchEvent(new Event('input'));
-                                });
-                        }
+                        fetch(`/api/notes/${item.id}`)
+                            .then(res => res.json())
+                            .then(note => {
+                                if (typeof window.loadNoteForEdit === 'function') {
+                                    window.loadNoteForEdit(note);
+                                } else {
+                                    const noteTitle = document.getElementById('noteTitle');
+                                    const smartEditor = document.getElementById('smartEditor');
+                                    if (noteTitle) noteTitle.value = note.title || '';
+                                    if (smartEditor) {
+                                        smartEditor.value = note.content || '';
+                                        smartEditor.dispatchEvent(new Event('input'));
+                                    }
+                                }
+                            });
                     } else {
                         // It's an ATA, maybe redirect or alert (scope limit)
                         alert(`Esta é uma ATA de Reunião. Redirecionando para o painel principal...`);
@@ -888,121 +900,182 @@ function initializeMainApp() {
             renderHistory();
         });
     });
+    // --- Helpers ---
+
+    function applySidebarAvatar(src) {
+        const sidebarAvatar = document.getElementById('sidebarAvatar');
+        if (!sidebarAvatar) return;
+        const icon = sidebarAvatar.querySelector('i');
+        const img = sidebarAvatar.querySelector('.sidebar-avatar-img');
+        if (src) {
+            if (icon) icon.style.display = 'none';
+            if (img) {
+                img.src = src;
+                img.classList.remove('hidden');
+                img.style.display = 'block';
+            }
+        } else {
+            if (icon) icon.style.display = '';
+            if (img) img.classList.add('hidden');
+        }
+    }
+
+    function avatarUrlFromName(name) {
+        return `https://ui-avatars.com/api/?name=${encodeURIComponent(name || 'U')}&background=6c5ce7&color=fff&size=128`;
+    }
+
     // --- Profile Settings Logic ---
     const settingsMenuLink = document.getElementById('settingsMenuLink');
     const settingsOverlay = document.getElementById('settingsOverlay');
     const closeSettingsBtn = document.getElementById('closeSettingsBtn');
-    const profileForm = document.getElementById('profileForm');
     const saveProfileBtn = document.getElementById('saveProfileBtn');
     const userNameInput = document.getElementById('userNameInput');
+    const userEmailInput = document.getElementById('userEmailInput');
+    const currentPasswordInput = document.getElementById('currentPasswordInput');
+    const newPasswordInput = document.getElementById('newPasswordInput');
     const settingsSuccessMsg = document.getElementById('settingsSuccessMsg');
+    const settingsErrorMsg = document.getElementById('settingsErrorMsg');
     const avatarUpload = document.getElementById('avatarUpload');
     const profileAvatarImg = document.getElementById('profileAvatarImg');
+
+    // On page load: restore avatar + name from localStorage
+    const savedAvatar = localStorage.getItem('helpnote_avatar');
+    if (savedAvatar) {
+        applySidebarAvatar(savedAvatar);
+        if (profileAvatarImg) profileAvatarImg.src = savedAvatar;
+    }
 
     if (settingsMenuLink) {
         settingsMenuLink.addEventListener('click', (e) => {
             e.preventDefault();
-            settingsOverlay.classList.remove('hidden');
+            if (settingsSuccessMsg) settingsSuccessMsg.classList.add('hidden');
+            if (settingsErrorMsg) settingsErrorMsg.classList.add('hidden');
+
+            fetch('/api/auth/me').then(r => r.json()).then(user => {
+                if (userNameInput) userNameInput.value = user.userName || '';
+                if (userEmailInput) userEmailInput.value = user.userEmail || '';
+
+                // Show saved custom avatar or generate from name
+                const saved = localStorage.getItem('helpnote_avatar');
+                if (profileAvatarImg) {
+                    profileAvatarImg.src = saved || avatarUrlFromName(user.userName);
+                }
+            });
+            if (settingsOverlay) settingsOverlay.classList.remove('hidden');
         });
     }
 
     if (closeSettingsBtn) {
         closeSettingsBtn.addEventListener('click', () => {
-            settingsOverlay.classList.add('hidden');
-            settingsSuccessMsg.classList.add('hidden');
+            if (settingsOverlay) settingsOverlay.classList.add('hidden');
+            if (currentPasswordInput) currentPasswordInput.value = '';
+            if (newPasswordInput) newPasswordInput.value = '';
         });
     }
 
-    // Avatar Upload Preview
+    // Toggle password visibility inside settings
+    document.querySelectorAll('#settingsOverlay .toggle-password').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const input = btn.closest('.input-with-icon').querySelector('input');
+            if (!input) return;
+            const isPassword = input.type === 'password';
+            input.type = isPassword ? 'text' : 'password';
+            const icon = btn.querySelector('i');
+            icon.classList.toggle('fa-eye', !isPassword);
+            icon.classList.toggle('fa-eye-slash', isPassword);
+        });
+    });
+
+    // Avatar upload: preview + update sidebar immediately
     if (avatarUpload) {
         avatarUpload.addEventListener('change', (e) => {
             const file = e.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = (event) => {
-                    const avatarDataUrl = event.target.result;
-                    profileAvatarImg.src = avatarDataUrl;
-                    
-                    // Show preview in sidebar too
-                    updateSidebarAvatar(avatarDataUrl);
-                };
-                reader.readAsDataURL(file);
-            }
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                const dataUrl = event.target.result;
+                if (profileAvatarImg) profileAvatarImg.src = dataUrl;
+                // Update sidebar avatar immediately
+                applySidebarAvatar(dataUrl);
+                // Persist to localStorage so it survives page reload
+                localStorage.setItem('helpnote_avatar', dataUrl);
+            };
+            reader.readAsDataURL(file);
         });
-    }
-
-    function updateSidebarAvatar(dataUrl) {
-        const sidebarAvatar = document.getElementById('sidebarAvatar');
-        if (sidebarAvatar) {
-            const icon = sidebarAvatar.querySelector('i');
-            const img = sidebarAvatar.querySelector('.sidebar-avatar-img');
-            if (dataUrl) {
-                if (icon) icon.classList.add('hidden');
-                if (img) {
-                    img.src = dataUrl;
-                    img.classList.remove('hidden');
-                }
-            } else {
-                if (icon) icon.classList.remove('hidden');
-                if (img) img.classList.add('hidden');
-            }
-        }
     }
 
     if (saveProfileBtn) {
-        saveProfileBtn.addEventListener('click', () => {
-            const newName = userNameInput.value.trim();
-            if (newName) {
-                // Update Greeting on Dashboard
-                const greetingText = document.getElementById('greetingText');
-                if (greetingText) {
-                    const firstName = newName.split(' ')[0];
-                    const hours = new Date().getHours();
-                    let greeting = "Bom dia";
-                    if (hours >= 12 && hours < 18) greeting = "Boa tarde";
-                    if (hours >= 18 || hours < 5) greeting = "Boa noite";
-                    greetingText.textContent = `${greeting}, ${firstName}! 👋`;
+        saveProfileBtn.addEventListener('click', async () => {
+            const newName = userNameInput ? userNameInput.value.trim() : '';
+            const currentPwd = currentPasswordInput ? currentPasswordInput.value.trim() : '';
+            const newPwd = newPasswordInput ? newPasswordInput.value.trim() : '';
+
+            if (settingsSuccessMsg) settingsSuccessMsg.classList.add('hidden');
+            if (settingsErrorMsg) settingsErrorMsg.classList.add('hidden');
+            saveProfileBtn.disabled = true;
+            saveProfileBtn.textContent = 'Salvando...';
+
+            try {
+                if (newName) {
+                    const res = await fetch('/api/auth/profile', {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ name: newName })
+                    });
+                    if (!res.ok) {
+                        const err = await res.json();
+                        throw new Error(err.error || 'Erro ao salvar nome.');
+                    }
+                    // Reflect name changes across the page
+                    const profileNameEl = document.getElementById('userProfileName');
+                    if (profileNameEl) profileNameEl.textContent = newName;
+
+                    const greetingText = document.getElementById('greetingText');
+                    if (greetingText) {
+                        const firstName = newName.split(' ')[0];
+                        const h = new Date().getHours();
+                        const greeting = h >= 18 || h < 5 ? 'Boa noite' : h >= 12 ? 'Boa tarde' : 'Bom dia';
+                        greetingText.innerHTML = `${greeting}, ${firstName}! 👋`;
+                    }
+
+                    // If user has no custom avatar, regenerate sidebar avatar with new name
+                    const saved = localStorage.getItem('helpnote_avatar');
+                    if (!saved) {
+                        applySidebarAvatar(avatarUrlFromName(newName));
+                    }
                 }
 
-                // Show Success Toast
-                settingsSuccessMsg.classList.remove('hidden');
-                setTimeout(() => {
-                    settingsSuccessMsg.classList.add('hidden');
-                    settingsOverlay.classList.add('hidden');
-                }, 1500);
-
-                // Save to localStorage so it persists in the session
-                localStorage.setItem('helpnote_username', newName);
-                
-                // Save Avatar if it was changed
-                if (profileAvatarImg.src.startsWith('data:image')) {
-                    localStorage.setItem('helpnote_avatar', profileAvatarImg.src);
+                if (currentPwd && newPwd) {
+                    const res = await fetch('/api/auth/password', {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ currentPassword: currentPwd, newPassword: newPwd })
+                    });
+                    if (!res.ok) {
+                        const err = await res.json();
+                        throw new Error(err.error || 'Erro ao alterar senha.');
+                    }
+                    if (currentPasswordInput) currentPasswordInput.value = '';
+                    if (newPasswordInput) newPasswordInput.value = '';
                 }
+
+                if (settingsSuccessMsg) {
+                    settingsSuccessMsg.classList.remove('hidden');
+                    setTimeout(() => {
+                        settingsSuccessMsg.classList.add('hidden');
+                        if (settingsOverlay) settingsOverlay.classList.add('hidden');
+                    }, 1500);
+                }
+            } catch (err) {
+                if (settingsErrorMsg) {
+                    settingsErrorMsg.textContent = err.message;
+                    settingsErrorMsg.classList.remove('hidden');
+                }
+            } finally {
+                saveProfileBtn.disabled = false;
+                saveProfileBtn.textContent = 'Salvar Alterações';
             }
         });
-    }
-
-    // Initial load of username and avatar
-    const savedName = localStorage.getItem('helpnote_username');
-    const savedAvatar = localStorage.getItem('helpnote_avatar');
-
-    if (savedAvatar) {
-        if (profileAvatarImg) profileAvatarImg.src = savedAvatar;
-        updateSidebarAvatar(savedAvatar);
-    }
-
-    if (savedName && userNameInput) {
-        userNameInput.value = savedName;
-        // Trigger greeting update if on dashboard
-        const greetingText = document.getElementById('greetingText');
-        if (greetingText) {
-            const firstName = savedName.split(' ')[0];
-            const hours = new Date().getHours();
-            let greeting = "Bom dia";
-            if (hours >= 12 && hours < 18) greeting = "Boa tarde";
-            if (hours >= 18 || hours < 5) greeting = "Boa noite";
-            greetingText.textContent = `${greeting}, ${firstName}! 👋`;
-        }
     }
 }
 
@@ -1202,5 +1275,26 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
         }
+    }
+});
+
+// Mobile bottom nav wiring
+document.addEventListener('DOMContentLoaded', () => {
+    const mobAtaLink = document.getElementById('mobAtaLink');
+    if (mobAtaLink) {
+        mobAtaLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            const ataLink = document.getElementById('ataMenuLink');
+            if (ataLink) ataLink.click();
+        });
+    }
+
+    const mobSettingsLink = document.getElementById('mobSettingsLink');
+    if (mobSettingsLink) {
+        mobSettingsLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            const settingsLink = document.getElementById('settingsMenuLink');
+            if (settingsLink) settingsLink.click();
+        });
     }
 });

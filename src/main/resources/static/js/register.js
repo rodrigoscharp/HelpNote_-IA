@@ -59,19 +59,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
 
                 if (response.ok) {
-                    // Success! Redirect to login page
-                    alert("Conta criada com sucesso! Você pode fazer o login agora.");
-                    window.location.href = 'login.html';
+                    window.location.href = 'login.html?registered=1';
                 } else {
-                    // Handle error (e.g. Email already used)
-                    const errorMsg = await response.text();
-
+                    let errorMsg = "Erro ao criar conta. Tente novamente.";
+                    try {
+                        const data = await response.json();
+                        errorMsg = data.error || errorMsg;
+                    } catch {
+                        errorMsg = await response.text() || errorMsg;
+                    }
                     if (errorDiv) {
-                        errorDiv.textContent = errorMsg || "Erro ao criar conta. Tente novamente.";
+                        errorDiv.textContent = errorMsg;
                         errorDiv.classList.remove('hidden');
                     }
-
-                    // Reset button
                     btn.innerHTML = originalText;
                     btn.style.opacity = '1';
                     btn.disabled = false;

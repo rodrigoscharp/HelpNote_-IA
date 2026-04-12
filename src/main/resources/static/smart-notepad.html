@@ -1,255 +1,305 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HelpNote IA - Bloco de Notas Inteligente</title>
+    <title>HelpNote IA - Anotação Inteligente</title>
     <link rel="icon" href="favicon.png" type="image/png">
-    <!-- Modern Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Main Style -->
+    <!-- PWA -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#6366f1">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="HelpNote IA">
     <link rel="stylesheet" href="css/style.css">
 </head>
-
 <body>
-    <div class="app-container">
-        <!-- Sidebar Navigation -->
-        <aside class="sidebar">
-            <div class="brand">
-                <div class="logo-icon"><i class="fa-solid fa-microphone-lines"></i></div>
-                <a href="index.html" style="text-decoration: none; color: inherit;">
-                    <h1>HelpNote <span>IA</span></h1>
-                </a>
+<div class="app-container">
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="brand">
+            <div class="logo-icon"><i class="fa-solid fa-microphone-lines"></i></div>
+            <a href="index.html" style="text-decoration:none;color:inherit;">
+                <h1>HelpNote <span>IA</span></h1>
+            </a>
+        </div>
+        <nav class="nav-menu">
+            <a href="index.html" class="nav-item">
+                <i class="fa-solid fa-house"></i><span>Início</span>
+            </a>
+            <a href="smart-notepad.html" class="nav-item active">
+                <i class="fa-solid fa-pen-to-square"></i><span>Anotação inteligente</span>
+            </a>
+            <a href="index.html#recordings" class="nav-item">
+                <i class="fa-solid fa-clipboard-list"></i><span>ATA de reuniões</span>
+            </a>
+            <a href="#" id="historyMenuLink" class="nav-item">
+                <i class="fa-solid fa-clock-rotate-left"></i><span>Histórico</span>
+            </a>
+            <a href="pricing.html" class="nav-item">
+                <i class="fa-solid fa-crown"></i><span>Planos</span>
+            </a>
+            <a href="#" id="settingsMenuLink" class="nav-item">
+                <i class="fa-solid fa-gear"></i><span>Configurações</span>
+            </a>
+        </nav>
+        <div class="sidebar-footer">
+            <div class="user-profile">
+                <div class="avatar" id="sidebarAvatar">
+                    <i class="fa-solid fa-user"></i>
+                    <img src="" alt="Avatar" class="sidebar-avatar-img hidden">
+                </div>
+                <div class="user-info">
+                    <span class="name" id="userProfileName">Carregando...</span>
+                    <span class="plan" id="userPlanBadge">Gratuito</span>
+                </div>
+                <button id="logoutBtn" class="logout-btn tooltip" data-tooltip="Sair">
+                    <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                </button>
             </div>
+        </div>
+    </aside>
 
-            <nav class="nav-menu">
-                <a href="index.html" class="nav-item">
-                    <i class="fa-solid fa-house"></i>
-                    <span>Início</span>
-                </a>
-                <a href="smart-notepad.html" class="nav-item active">
-                    <i class="fa-solid fa-pen-to-square"></i>
-                    <span>Anotação inteligente</span>
-                </a>
-                <a href="index.html#recordings" class="nav-item">
-                    <i class="fa-solid fa-clipboard-list"></i>
-                    <span>ATA de reuniões</span>
-                </a>
-                <a href="#" id="historyMenuLink" class="nav-item">
-                    <i class="fa-solid fa-clock-rotate-left"></i>
-                    <span>Histórico</span>
-                </a>
-                <a href="pricing.html" class="nav-item">
-                    <i class="fa-solid fa-crown"></i>
-                    <span>Planos</span>
-                </a>
-                <a href="#" class="nav-item">
-                    <i class="fa-solid fa-gear"></i>
-                    <span>Configurações</span>
-                </a>
-            </nav>
-
-            <div class="sidebar-footer">
-                <div class="user-profile">
-                    <div class="avatar" id="sidebarAvatar">
-                        <i class="fa-solid fa-user"></i>
-                        <img src="" alt="Avatar" class="sidebar-avatar-img hidden">
-                    </div>
-                    <div class="user-info">
-                        <span class="name" id="userProfileName">Carregando...</span>
-                        <span class="plan" id="userPlanBadge">Gratuito</span>
-                    </div>
-                    <button id="logoutBtn" class="logout-btn tooltip" data-tooltip="Sair">
-                        <i class="fa-solid fa-arrow-right-from-bracket"></i>
-                    </button>
+    <!-- Main -->
+    <main class="main-content">
+        <header class="top-header">
+            <div class="header-left">
+                <button id="menuToggle" class="menu-toggle">
+                    <i class="fa-solid fa-bars"></i>
+                </button>
+                <div class="page-title">
+                    <h2 id="pageTitle">Nova Anotação</h2>
+                    <span id="editModeIndicator" class="edit-badge hidden">
+                        <i class="fa-solid fa-pen"></i> Editando
+                    </span>
                 </div>
             </div>
-        </aside>
+            <div class="header-actions">
+                <button class="icon-action-btn" id="newNoteBtn" title="Nova nota">
+                    <i class="fa-solid fa-file-circle-plus"></i>
+                </button>
+                <button class="icon-action-btn" id="voiceNoteBtn" title="Ditado por voz">
+                    <i class="fa-solid fa-microphone"></i>
+                </button>
+                <button class="icon-action-btn" id="copyNoteBtn" title="Copiar conteúdo">
+                    <i class="fa-solid fa-copy"></i>
+                </button>
+                <button class="icon-action-btn" id="exportPdfBtn" title="Exportar como PDF" disabled>
+                    <i class="fa-solid fa-file-pdf"></i>
+                </button>
+                <button class="primary-btn" id="saveNoteBtn">
+                    <i class="fa-solid fa-floppy-disk"></i>
+                    <span>Salvar</span>
+                </button>
+            </div>
+        </header>
 
-        <!-- Main Content Area -->
-        <main class="main-content">
-            <header class="top-header">
-                <div class="header-left">
-                    <button id="menuToggle" class="menu-toggle">
-                        <i class="fa-solid fa-bars"></i>
-                    </button>
-                    <div class="page-title">
-                        <h2>Nova Anotação Inteligente</h2>
-                    </div>
-                </div>
-                <div class="header-actions">
-                    <button class="primary-btn" id="saveNoteBtn">
-                        <i class="fa-solid fa-floppy-disk"></i>
-                        <span>Salvar Anotação</span>
-                    </button>
-                </div>
-            </header>
+        <div class="content-wrapper notepad-layout">
 
-            <div class="content-wrapper notepad-layout">
-                <!-- Left Column: AI Notepad Editor -->
-                <div class="notepad-editor-col">
-                    <div class="editor-container">
-                        <input type="text" id="noteTitle" class="notepad-title" placeholder="Título da Anotação..."
-                            value="Nova Reunião">
+            <!-- Editor column -->
+            <div class="notepad-editor-col">
+                <div class="editor-container">
+                    <input type="text" id="noteTitle" class="notepad-title" placeholder="Título da anotação...">
 
-                        <div class="editor-wrapper">
-                            <!-- Backdrop layer for highlights and ghost-text inline with the real text -->
-                            <div class="editor-backdrop" id="editorBackdrop">
-                                <div class="highlights" id="highlights"></div>
-                            </div>
-
-                            <textarea id="smartEditor" class="smart-editor"
-                                placeholder="Comece a digitar sua anotação... a Inteligência Artificial vai sugerir complementos para você."></textarea>
-
-                            <!-- Alternative suggestion box tooltip -->
-                            <div class="suggestion-tooltip hidden" id="suggestionTooltip">
-                                <div class="suggestion-header">
-                                    <i class="fa-solid fa-sparkles"></i> Sugestão IA <span class="tab-hint">Pressione
-                                        <kbd>Tab</kbd></span>
-                                </div>
-                                <div class="suggestion-content" id="suggestionBoxContent">
-                                    ...
-                                </div>
-                            </div>
+                    <div class="editor-wrapper">
+                        <div class="editor-backdrop" id="editorBackdrop">
+                            <div class="highlights" id="highlights"></div>
                         </div>
+                        <textarea id="smartEditor" class="smart-editor"
+                            placeholder="Comece a digitar sua anotação...&#10;&#10;💡 A IA vai sugerir continuações em tempo real. Pressione Tab para aceitar."></textarea>
 
-                        <div class="editor-status">
-                            <span id="saveStatus">Rascunho salvo</span>
-                            <span>•</span>
+                        <div class="suggestion-tooltip hidden" id="suggestionTooltip">
+                            <div class="suggestion-header">
+                                <i class="fa-solid fa-sparkles"></i> Sugestão IA
+                                <span class="tab-hint">Pressione <kbd>Tab</kbd></span>
+                            </div>
+                            <div class="suggestion-content" id="suggestionBoxContent"></div>
+                        </div>
+                    </div>
+
+                    <!-- Voice dictation bar -->
+                    <div class="voice-indicator hidden" id="voiceIndicator">
+                        <div class="voice-dot"></div>
+                        <span>Ouvindo… fale agora</span>
+                        <button id="stopVoiceBtn"><i class="fa-solid fa-stop"></i> Parar</button>
+                    </div>
+
+                    <div class="editor-status">
+                        <span id="saveStatus" class="save-status">
+                            <i class="fa-solid fa-circle-check"></i> Pronto
+                        </span>
+                        <div class="editor-status-right">
                             <span id="wordCount">0 palavras</span>
+                            <span class="status-divider">•</span>
+                            <span id="charCount">0 caracteres</span>
+                            <span class="status-divider">•</span>
+                            <span id="readingTime">~1 min de leitura</span>
                         </div>
                     </div>
                 </div>
-
-                <!-- Right Column: AI Insights & Keywords -->
-                <div class="notepad-sidebar-col">
-                    <section class="ai-assistant-panel h-100">
-                        <div class="panel-header">
-                            <div class="ai-title">
-                                <i class="fa-solid fa-sparkles spark-icon"></i>
-                                <h3>IA em tempo real</h3>
-                            </div>
-                            <span class="ai-status active-pulse" id="aiStatus">Ouvindo...</span>
-                        </div>
-
-                        <div class="ai-content">
-                            <!-- Empty / Default state -->
-                            <div class="empty-state" id="aiEmptyState">
-                                <div class="ai-bot-icon">
-                                    <i class="fa-solid fa-brain"></i>
-                                </div>
-                                <h4>Digite para obter insights</h4>
-                                <p>Conforme você escreve, nossa IA extrai palavras-chave e contexto para complementar
-                                    suas notas automaticamente.</p>
-                            </div>
-
-                            <!-- Active State with Keywords -->
-                            <div class="active-ai-state hidden" id="aiActiveState">
-                                <div class="insight-box keywords-box">
-                                    <h5><i class="fa-solid fa-tags"></i> Palavras-chave Detectadas</h5>
-                                    <div class="keyword-tags" id="keywordTagsContainer">
-                                        <!-- Tags will be populated here -->
-                                    </div>
-                                </div>
-
-                                <div class="insight-box suggestions-info">
-                                    <h5><i class="fa-solid fa-lightbulb"></i> Como funciona?</h5>
-                                    <p>Quando você pausa a digitação, a IA sugere continuações da sua frase. Pressione a
-                                        tecla <b>Tab</b> para aceitar a sugestão.</p>
-                                </div>
-
-                                <div class="insight-box correction-box hidden" id="correctionPanel">
-                                    <h5><i class="fa-solid fa-spell-check"></i> Correção Sugerida</h5>
-                                    <div class="correction-preview" id="correctionPreview">
-                                        <!-- Diff will be rendered here -->
-                                    </div>
-                                    <div class="correction-actions">
-                                        <button class="correction-btn apply" id="applyCorrectionBtn">
-                                            <i class="fa-solid fa-check"></i> Aplicar
-                                        </button>
-                                        <button class="correction-btn dismiss" id="dismissCorrectionBtn">
-                                            <i class="fa-solid fa-xmark"></i> Ignorar
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </section>
-
-                    <section class="ai-assistant-panel history-panel" style="margin-top: 24px; height: 300px;">
-                        <div class="panel-header">
-                            <div class="ai-title">
-                                <i class="fa-solid fa-history spark-icon"></i>
-                                <h3>Histórico de Notas</h3>
-                            </div>
-                        </div>
-                        <div class="ai-content" id="notesHistoryList">
-                            <!-- Notes will be loaded here -->
-                            <div class="empty-state">
-                                <p>Nenhuma nota salva ainda.</p>
-                            </div>
-                        </div>
-                    </section>
-                </div>
-            </div>
-        </main>
-    </div>
-
-    <!-- History Overlay -->
-    <div id="historyOverlay" class="history-overlay hidden">
-        <div class="history-container">
-            <div class="history-header">
-                <h2>Histórico do HelpNote</h2>
-                <button id="closeHistoryBtn" class="close-overlay-btn"><i class="fa-solid fa-xmark"></i></button>
             </div>
 
-            <div class="history-toolbar">
-                <div class="search-box">
-                    <i class="fa-solid fa-magnifying-glass"></i>
-                    <input type="text" id="historySearchInput" placeholder="Pesquisar no histórico...">
-                </div>
-                <div class="filter-tabs">
-                    <button class="filter-tab active" data-filter="all">Tudo</button>
-                    <button class="filter-tab" data-filter="ata">Atas</button>
-                    <button class="filter-tab" data-filter="note">Anotações</button>
-                </div>
-            </div>
+            <!-- Right sidebar -->
+            <div class="notepad-sidebar-col">
 
-            <div id="historyList" class="history-list">
-                <!-- History Items will be injected here -->
+                <!-- AI Panel -->
+                <section class="ai-assistant-panel np-ai-panel">
+                    <div class="panel-header">
+                        <div class="ai-title">
+                            <i class="fa-solid fa-sparkles spark-icon"></i>
+                            <h3>IA em tempo real</h3>
+                        </div>
+                        <span class="ai-status active-pulse" id="aiStatus">Ouvindo…</span>
+                    </div>
+                    <div class="ai-content">
+                        <div class="empty-state" id="aiEmptyState">
+                            <div class="ai-bot-icon"><i class="fa-solid fa-brain"></i></div>
+                            <h4>Digite para obter insights</h4>
+                            <p>A IA extrai palavras-chave, sugere continuações e melhora seu texto automaticamente.</p>
+                        </div>
+                        <div class="active-ai-state hidden" id="aiActiveState">
+
+                            <div class="insight-box title-suggestion-box hidden" id="titleSuggestionBox">
+                                <h5><i class="fa-solid fa-wand-magic-sparkles"></i> Título sugerido</h5>
+                                <div class="title-suggestion-content">
+                                    <span id="suggestedTitleText"></span>
+                                    <button class="apply-title-btn" id="applyTitleBtn">
+                                        <i class="fa-solid fa-arrow-up-to-line"></i> Usar
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="insight-box keywords-box">
+                                <h5><i class="fa-solid fa-tags"></i> Palavras-chave</h5>
+                                <div class="keyword-tags" id="keywordTagsContainer"></div>
+                            </div>
+
+                            <div class="insight-box suggestions-info">
+                                <h5><i class="fa-solid fa-lightbulb"></i> Dica</h5>
+                                <p>Pause a digitação e a IA vai sugerir uma continuação. Pressione <b>Tab</b> para aceitar.</p>
+                            </div>
+
+                            <div class="insight-box correction-box hidden" id="correctionPanel">
+                                <h5><i class="fa-solid fa-spell-check"></i> Correção sugerida</h5>
+                                <div class="correction-preview" id="correctionPreview"></div>
+                                <div class="correction-actions">
+                                    <button class="correction-btn apply" id="applyCorrectionBtn">
+                                        <i class="fa-solid fa-check"></i> Aplicar
+                                    </button>
+                                    <button class="correction-btn dismiss" id="dismissCorrectionBtn">
+                                        <i class="fa-solid fa-xmark"></i> Ignorar
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- History Panel -->
+                <section class="ai-assistant-panel np-history-panel">
+                    <div class="panel-header">
+                        <div class="ai-title">
+                            <i class="fa-solid fa-clock-rotate-left spark-icon"></i>
+                            <h3>Notas salvas</h3>
+                        </div>
+                        <span class="notes-count-badge" id="notesCount">0</span>
+                    </div>
+                    <div class="np-history-search">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <input type="text" id="noteHistorySearch" placeholder="Buscar notas…">
+                    </div>
+                    <div class="np-history-list" id="notesHistoryList">
+                        <div class="empty-state"><p>Nenhuma nota salva ainda.</p></div>
+                    </div>
+                </section>
+
             </div>
         </div>
-    </div>
+    </main>
+</div>
 
-    <!-- Main script for common UI components (sidebar, overlays) -->
-    <script src="js/script.js"></script>
-    <!-- The custom javascript piece for the notepad -->
-    <script src="js/notepad.js"></script>
+<!-- Mobile Bottom Navigation -->
+<nav class="mobile-bottom-nav">
+    <a href="index.html" class="mob-nav-item">
+        <i class="fa-solid fa-house"></i>
+        <span>Início</span>
+    </a>
+    <a href="smart-notepad.html" class="mob-nav-item active">
+        <i class="fa-solid fa-pen-to-square"></i>
+        <span>Anotação</span>
+    </a>
+    <a href="index.html#recordings" class="mob-nav-item">
+        <i class="fa-solid fa-clipboard-list"></i>
+        <span>ATA</span>
+    </a>
+    <a href="pricing.html" class="mob-nav-item">
+        <i class="fa-solid fa-crown"></i>
+        <span>Planos</span>
+    </a>
+    <a href="#" id="mobSettingsLink" class="mob-nav-item">
+        <i class="fa-solid fa-gear"></i>
+        <span>Config</span>
+    </a>
+</nav>
+
+<!-- Delete confirmation modal -->
+<div id="deleteConfirmOverlay" class="np-delete-overlay hidden">
+    <div class="np-delete-modal">
+        <div class="np-delete-icon"><i class="fa-solid fa-trash-can"></i></div>
+        <h3>Excluir nota?</h3>
+        <p>Esta ação não pode ser desfeita.</p>
+        <div class="np-delete-actions">
+            <button id="confirmDeleteBtn" class="btn-danger">
+                <i class="fa-solid fa-trash-can"></i> Excluir
+            </button>
+            <button id="cancelDeleteBtn" class="btn-secondary-outline">Cancelar</button>
+        </div>
+    </div>
+</div>
+
+<!-- History Overlay (global) -->
+<div id="historyOverlay" class="history-overlay hidden">
+    <div class="history-container">
+        <div class="history-header">
+            <h2>Histórico do HelpNote</h2>
+            <button id="closeHistoryBtn" class="close-overlay-btn"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="history-toolbar">
+            <div class="search-box">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input type="text" id="historySearchInput" placeholder="Pesquisar no histórico…">
+            </div>
+            <div class="filter-tabs">
+                <button class="filter-tab active" data-filter="all">Tudo</button>
+                <button class="filter-tab" data-filter="ata">Atas</button>
+                <button class="filter-tab" data-filter="note">Anotações</button>
+            </div>
+        </div>
+        <div id="historyList" class="history-list"></div>
+    </div>
+</div>
+
+<!-- Upgrade Modal -->
+<div id="upgradeOverlay" class="upgrade-overlay hidden">
+    <div class="upgrade-modal">
+        <div class="upgrade-modal-icon"><i class="fa-solid fa-lock"></i></div>
+        <h3>Limite Diário Atingido!</h3>
+        <p id="upgradeMessage">Faça upgrade para o <strong>Premium</strong> por apenas <strong>R$ 9,99/mês</strong> e tenha acesso ilimitado!</p>
+        <div class="upgrade-modal-actions">
+            <button class="pricing-btn premium-btn" onclick="window.location.href='pricing.html'">
+                <i class="fa-solid fa-crown"></i><span>Ver Planos</span>
+            </button>
+            <button class="cancel-link" onclick="document.getElementById('upgradeOverlay').classList.add('hidden')">Fechar</button>
+        </div>
+    </div>
+</div>
+
+<script src="js/script.js"></script>
+<script src="js/notepad.js"></script>
 </body>
-
-    <!-- Upgrade Modal Overlay -->
-    <div id="upgradeOverlay" class="upgrade-overlay hidden">
-        <div class="upgrade-modal">
-            <div class="upgrade-modal-icon">
-                <i class="fa-solid fa-lock"></i>
-            </div>
-            <h3>Limite Diário Atingido!</h3>
-            <p id="upgradeMessage">Você atingiu o limite do plano gratuito. Faça upgrade para o Premium por apenas <strong>R$ 9,99/mês</strong> e tenha acesso ilimitado!</p>
-            <div class="upgrade-modal-actions">
-                <button class="pricing-btn premium-btn" onclick="window.location.href='pricing.html'">
-                    <i class="fa-solid fa-crown"></i>
-                    <span>Ver Planos</span>
-                </button>
-                <button class="cancel-link" onclick="document.getElementById('upgradeOverlay').classList.add('hidden')">
-                    Fechar
-                </button>
-            </div>
-        </div>
-    </div>
-
 </html>

@@ -3,7 +3,10 @@ package com.example.HelpNote.service;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.example.HelpNote.domain.PlanType;
 import com.example.HelpNote.domain.User;
@@ -12,6 +15,8 @@ import com.example.HelpNote.repository.UserRepository;
 
 @Service
 public class UsageLimitService {
+
+    private static final Logger log = LoggerFactory.getLogger(UsageLimitService.class);
 
     private static final int FREE_DAILY_NOTE_LIMIT = 1;
     private static final int FREE_DAILY_ATA_LIMIT = 1;
@@ -23,9 +28,7 @@ public class UsageLimitService {
         this.userRepository = userRepository;
     }
 
-    /**
-     * Resets daily counters if the date has changed since last reset.
-     */
+    @Transactional
     private void resetDailyCountersIfNeeded(User user) {
         LocalDate today = LocalDate.now();
         if (user.getLastUsageResetDate() == null || !user.getLastUsageResetDate().equals(today)) {
@@ -66,9 +69,7 @@ public class UsageLimitService {
         return user.getDailyAtaCount() < FREE_DAILY_ATA_LIMIT;
     }
 
-    /**
-     * Increment the daily note usage counter.
-     */
+    @Transactional
     public void incrementNoteUsage(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
@@ -78,9 +79,7 @@ public class UsageLimitService {
         userRepository.save(user);
     }
 
-    /**
-     * Increment the daily ata usage counter.
-     */
+    @Transactional
     public void incrementAtaUsage(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
@@ -90,9 +89,7 @@ public class UsageLimitService {
         userRepository.save(user);
     }
 
-    /**
-     * Upgrade user to Premium plan.
-     */
+    @Transactional
     public void upgradeToPremium(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
@@ -102,9 +99,7 @@ public class UsageLimitService {
         userRepository.save(user);
     }
 
-    /**
-     * Downgrade user to Free plan.
-     */
+    @Transactional
     public void downgradeToFree(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("Usuário não encontrado"));

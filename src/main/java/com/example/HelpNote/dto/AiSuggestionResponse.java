@@ -7,6 +7,7 @@ public class AiSuggestionResponse {
     private List<String> keywords;
     private String suggestedCompletion;
     private String correctedText;
+    private String suggestedTitle;
 
     public AiSuggestionResponse() {
     }
@@ -38,5 +39,13 @@ public class AiSuggestionResponse {
 
     public void setCorrectedText(String correctedText) {
         this.correctedText = correctedText;
+    }
+
+    public String getSuggestedTitle() {
+        return suggestedTitle;
+    }
+
+    public void setSuggestedTitle(String suggestedTitle) {
+        this.suggestedTitle = suggestedTitle;
     }
 }

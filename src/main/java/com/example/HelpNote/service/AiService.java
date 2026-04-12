@@ -151,6 +151,66 @@ public class AiService {
                    .replace("\\n", "\n");
     }
 
+    public String analyzeTranscript(String transcript) {
+        if (transcript == null || transcript.trim().isEmpty()) {
+            return "{\"summary\":\"Sem transcrição disponível.\",\"todos\":[]}";
+        }
+
+        String systemPrompt = """
+                Você é um assistente especializado em análise de reuniões.
+                Analise a transcrição fornecida e retorne um JSON com:
+                1. "summary": resumo conciso da reunião em 2-3 frases
+                2. "todos": lista de até 5 ações/próximos passos extraídos da reunião
+
+                REGRAS:
+                - Responda SOMENTE com JSON puro, sem markdown, sem ```json.
+                - Use aspas duplas para strings.
+                - Formato exato: {"summary":"resumo aqui","todos":["ação 1","ação 2"]}
+                """;
+
+        try {
+            log.info("Analisando transcrição...");
+            return chatClient.prompt()
+                    .system(systemPrompt)
+                    .user("Transcrição: " + transcript)
+                    .call()
+                    .content();
+        } catch (Exception e) {
+            log.error("Erro ao analisar transcrição: {}", e.getMessage());
+            return "{\"summary\":\"Erro ao processar transcrição.\",\"todos\":[]}";
+        }
+    }
+
+    public String chatAboutTranscript(String transcript, String question) {
+        if (transcript == null || transcript.trim().isEmpty()) {
+            return "Não há transcrição disponível para responder sua pergunta.";
+        }
+        if (question == null || question.trim().isEmpty()) {
+            return "Por favor, faça uma pergunta.";
+        }
+
+        String systemPrompt = """
+                Você é um assistente especializado em análise de reuniões.
+                Você tem acesso à transcrição de uma reunião e deve responder perguntas sobre ela.
+                Seja conciso e direto. Responda em português.
+                Se a informação não estiver na transcrição, diga que não encontrou na gravação.
+                """;
+
+        String userPrompt = String.format("Transcrição da reunião:\n%s\n\nPergunta: %s", transcript, question);
+
+        try {
+            log.info("Respondendo pergunta sobre transcrição...");
+            return chatClient.prompt()
+                    .system(systemPrompt)
+                    .user(userPrompt)
+                    .call()
+                    .content();
+        } catch (Exception e) {
+            log.error("Erro ao responder pergunta: {}", e.getMessage());
+            return "Erro ao processar sua pergunta.";
+        }
+    }
+
     public String generateMeetingMinutes(String transcript, String title) {
         if (transcript == null || transcript.trim().isEmpty()) {
             return "Transcrição vazia. Não é possível gerar a ata.";

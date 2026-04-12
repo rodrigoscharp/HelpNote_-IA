@@ -239,22 +239,24 @@
                                         tarefas (To-dos) ou responder perguntas sobre o conteúdo.</p>
                                 </div>
 
-                                <!-- Mock Active State (Hidden by default) -->
+                                <!-- Loading State (Hidden by default) -->
+                                <div id="aiLoadingState" class="ai-loading-state hidden">
+                                    <div class="ai-spinner">
+                                        <i class="fa-solid fa-spinner fa-spin"></i>
+                                    </div>
+                                    <p>Analisando gravação com IA...</p>
+                                </div>
+
+                                <!-- Active State (Hidden by default) -->
                                 <div class="active-ai-state hidden">
                                     <div class="insight-box summary">
                                         <h5><i class="fa-solid fa-align-left"></i> Resumo Rápido</h5>
-                                        <p>A equipe discutiu as metas do Q3, focando na expansão do mercado europeu e
-                                            lançamento da feature de pagamentos até novembro.</p>
+                                        <p id="aiSummaryText">Carregando...</p>
                                     </div>
 
                                     <div class="insight-box todos">
                                         <h5><i class="fa-solid fa-list-check"></i> Próximos Passos (To-dos)</h5>
-                                        <ul class="todo-list">
-                                            <li><input type="checkbox"> Enviar orçamento de marketing para aprovação
-                                            </li>
-                                            <li><input type="checkbox"> Marcar reunião técnica sobre o gateway</li>
-                                            <li><input type="checkbox"> Revisar os textos traduzidos do app</li>
-                                        </ul>
+                                        <ul id="aiTodoList" class="todo-list"></ul>
                                     </div>
 
                                     <button id="generateAtaBtn" class="primary-btn ata-btn">
@@ -269,6 +271,8 @@
                                             <i class="fa-solid fa-download"></i> Baixar PDF
                                         </button>
                                     </div>
+
+                                    <div id="chatMessages" class="chat-messages"></div>
                                 </div>
                             </div>
 

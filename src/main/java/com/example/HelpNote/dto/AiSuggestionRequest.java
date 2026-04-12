@@ -4,6 +4,7 @@ public class AiSuggestionRequest {
 
     private String text;
     private String title;
+    private String question;
 
     public AiSuggestionRequest() {
     }
@@ -27,5 +28,13 @@ public class AiSuggestionRequest {
 
     public void setText(String text) {
         this.text = text;
+    }
+
+    public String getQuestion() {
+        return question;
+    }
+
+    public void setQuestion(String question) {
+        this.question = question;
     }
 }

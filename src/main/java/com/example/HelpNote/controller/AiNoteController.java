@@ -31,4 +31,16 @@ public class AiNoteController {
         String ata = aiService.generateMeetingMinutes(request.getText(), request.getTitle());
         return ResponseEntity.ok(ata);
     }
+
+    @PostMapping("/analyze")
+    public ResponseEntity<String> analyzeTranscript(@RequestBody AiSuggestionRequest request) {
+        String result = aiService.analyzeTranscript(request.getText());
+        return ResponseEntity.ok(result);
+    }
+
+    @PostMapping("/chat")
+    public ResponseEntity<String> chat(@RequestBody AiSuggestionRequest request) {
+        String answer = aiService.chatAboutTranscript(request.getText(), request.getQuestion());
+        return ResponseEntity.ok(answer);
+    }
 }

@@ -175,54 +175,137 @@ function initializeMainApp() {
         fileInput.value = '';
     }
 
-    // 2. Mock AI Content revealing when clicking a transcrito note
-    const transcritoNotes = document.querySelectorAll('.note-status.success');
+    // AI Panel state
+    let currentTranscript = "";
+    let currentNoteTitle = "";
 
-    transcritoNotes.forEach(status => {
-        const card = status.closest('.note-card');
+    async function activateAiPanel(note) {
+        currentTranscript = note.transcription || "";
+        currentNoteTitle = note.title || "Reunião";
 
-        card.addEventListener('click', () => {
-            // Remove active classes
-            document.querySelectorAll('.note-card').forEach(n => n.style.borderColor = 'var(--border-color)');
+        const emptyState = document.querySelector('.ai-content .empty-state');
+        const loadingState = document.getElementById('aiLoadingState');
+        const activeAiState = document.querySelector('.active-ai-state');
+        const aiInput = document.querySelector('.ai-prompt input');
+        const aiBtn = document.querySelector('.send-prompt-btn');
+        const aiStatus = document.querySelector('.ai-status');
+        const chatMessages = document.getElementById('chatMessages');
 
-            // Set active visual state
-            card.style.borderColor = 'var(--primary)';
-            card.style.backgroundColor = 'var(--primary-alpha)';
+        // Reset chat history
+        if (chatMessages) chatMessages.innerHTML = '';
 
-            // Activate AI Panel
-            const emptyState = document.querySelector('.empty-state');
-            const activeAiState = document.querySelector('.active-ai-state');
-            const aiInput = document.querySelector('.ai-prompt input');
-            const aiBtn = document.querySelector('.send-prompt-btn');
+        // Reset ATA result
+        const ataResult = document.getElementById('ataResult');
+        const generateAtaBtn = document.getElementById('generateAtaBtn');
+        if (ataResult) ataResult.classList.add('hidden');
+        if (generateAtaBtn) generateAtaBtn.classList.remove('hidden');
 
-            if (emptyState && activeAiState) {
-                emptyState.classList.add('hidden');
-                activeAiState.classList.remove('hidden');
+        // Show loading
+        if (emptyState) emptyState.classList.add('hidden');
+        if (activeAiState) activeAiState.classList.add('hidden');
+        if (loadingState) loadingState.classList.remove('hidden');
+        if (aiStatus) aiStatus.textContent = 'Analisando...';
+        if (aiInput) aiInput.setAttribute('disabled', true);
+        if (aiBtn) aiBtn.setAttribute('disabled', true);
 
-                // Update specific data dynamically based on the card Title
-                const titleText = card.querySelector('h4').textContent;
+        try {
+            const response = await fetch('/api/ai/analyze', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text: currentTranscript, title: currentNoteTitle })
+            });
 
-                if (titleText.includes("Produto")) {
-                    document.querySelector('.insight-box.summary p').textContent = "Na discussão de produto, a equipe definiu a paleta de cores, focou na experiência do usuário e decidiu adiar o módulo de Analytics para a versão 2.0.";
-                    document.querySelector('.todo-list').innerHTML = `
-                        <li><input type="checkbox"> Criar os protótipos de alta fidelidade</li>
-                        <li><input type="checkbox"> Validar a paleta de cores com o cliente</li>
-                    `;
-                } else {
-                    document.querySelector('.insight-box.summary p').textContent = "A equipe discutiu as metas do Q3, focando na expansão do mercado europeu e lançamento da feature de pagamentos até novembro.";
-                    document.querySelector('.todo-list').innerHTML = `
-                        <li><input type="checkbox"> Enviar orçamento de marketing para aprovação</li>
-                        <li><input type="checkbox"> Marcar reunião técnica sobre o gateway</li>
-                        <li><input type="checkbox"> Revisar os textos traduzidos do app</li>
-                    `;
+            if (response.ok) {
+                const rawJson = await response.text();
+                let parsed = {};
+                try {
+                    const clean = rawJson.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
+                    parsed = JSON.parse(clean);
+                } catch {
+                    parsed = { summary: rawJson, todos: [] };
                 }
 
-                // Enable forms
-                aiInput.removeAttribute('disabled');
-                aiBtn.removeAttribute('disabled');
+                const summaryEl = document.getElementById('aiSummaryText');
+                const todoListEl = document.getElementById('aiTodoList');
+
+                if (summaryEl) summaryEl.textContent = parsed.summary || "Resumo não disponível.";
+                if (todoListEl) {
+                    const todos = parsed.todos || [];
+                    if (todos.length > 0) {
+                        todoListEl.innerHTML = todos.map(t => `<li><input type="checkbox"> ${t}</li>`).join('');
+                    } else {
+                        todoListEl.innerHTML = '<li>Nenhuma ação identificada.</li>';
+                    }
+                }
             }
+        } catch (err) {
+            console.error("Erro ao analisar transcrição:", err);
+            const summaryEl = document.getElementById('aiSummaryText');
+            if (summaryEl) summaryEl.textContent = "Erro ao carregar análise da IA.";
+        } finally {
+            if (loadingState) loadingState.classList.add('hidden');
+            if (activeAiState) activeAiState.classList.remove('hidden');
+            if (aiStatus) aiStatus.textContent = 'Pronto';
+            if (aiInput) aiInput.removeAttribute('disabled');
+            if (aiBtn) aiBtn.removeAttribute('disabled');
+        }
+    }
+
+    // Send prompt handler
+    const aiPromptInput = document.querySelector('.ai-prompt input');
+    const aiSendBtn = document.querySelector('.send-prompt-btn');
+
+    if (aiSendBtn && aiPromptInput) {
+        async function sendChatMessage() {
+            const question = aiPromptInput.value.trim();
+            if (!question || !currentTranscript) return;
+
+            const chatMessages = document.getElementById('chatMessages');
+            if (!chatMessages) return;
+
+            // Add user message
+            chatMessages.insertAdjacentHTML('beforeend', `
+                <div class="chat-msg user-msg"><p>${question}</p></div>
+            `);
+            aiPromptInput.value = '';
+            aiSendBtn.setAttribute('disabled', true);
+            aiPromptInput.setAttribute('disabled', true);
+
+            // Add loading bubble
+            const loadingId = 'chat-loading-' + Date.now();
+            chatMessages.insertAdjacentHTML('beforeend', `
+                <div id="${loadingId}" class="chat-msg ai-msg loading-msg">
+                    <i class="fa-solid fa-spinner fa-spin"></i>
+                </div>
+            `);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+
+            try {
+                const response = await fetch('/api/ai/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text: currentTranscript, question })
+                });
+
+                const answer = response.ok ? await response.text() : "Erro ao obter resposta.";
+                const loadingEl = document.getElementById(loadingId);
+                if (loadingEl) loadingEl.outerHTML = `<div class="chat-msg ai-msg"><p>${answer}</p></div>`;
+            } catch {
+                const loadingEl = document.getElementById(loadingId);
+                if (loadingEl) loadingEl.outerHTML = `<div class="chat-msg ai-msg"><p>Erro de conexão.</p></div>`;
+            } finally {
+                aiSendBtn.removeAttribute('disabled');
+                aiPromptInput.removeAttribute('disabled');
+                aiPromptInput.focus();
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }
+        }
+
+        aiSendBtn.addEventListener('click', sendChatMessage);
+        aiPromptInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') sendChatMessage();
         });
-    });
+    }
 
     // ATA Generation Logic
     const generateAtaBtn = document.getElementById('generateAtaBtn');
@@ -231,8 +314,8 @@ function initializeMainApp() {
 
     if (generateAtaBtn && ataResult && ataContent) {
         generateAtaBtn.addEventListener('click', async () => {
-            const transcriptText = document.querySelector('.transcription-text p')?.textContent || "";
-            const noteTitle = document.querySelector('.note-header h3')?.textContent || "Reunião";
+            const transcriptText = currentTranscript || "";
+            const noteTitle = currentNoteTitle || "Reunião";
 
             // Show loading state
             generateAtaBtn.disabled = true;
@@ -558,7 +641,7 @@ function initializeMainApp() {
         atas.slice(0, 3).forEach(note => {
             const date = new Date(note.uploadDateTime);
             const formattedDate = date.toLocaleString();
-            
+
             const card = document.createElement('div');
             card.className = 'note-card';
             card.innerHTML = `
@@ -570,13 +653,26 @@ function initializeMainApp() {
                 <div class="note-status success">
                     ${note.transcription ? 'Transcrito' : 'Salvo'}
                 </div>
-                <button class="action-btn"><i class="fa-solid fa-ellipsis-vertical"></i></button>
+                <button class="action-btn" title="Ver detalhes"><i class="fa-solid fa-ellipsis-vertical"></i></button>
             `;
-            
-            card.onclick = () => {
+
+            // Action button opens the detail modal
+            card.querySelector('.action-btn').addEventListener('click', (e) => {
+                e.stopPropagation();
                 openAtaDetail(note.id);
+            });
+
+            // Card click activates the AI panel
+            card.onclick = () => {
+                document.querySelectorAll('.note-card').forEach(n => {
+                    n.style.borderColor = 'var(--border-color)';
+                    n.style.backgroundColor = '';
+                });
+                card.style.borderColor = 'var(--primary)';
+                card.style.backgroundColor = 'var(--primary-alpha)';
+                activateAiPanel(note);
             };
-            
+
             recentRecordingsList.appendChild(card);
         });
     }

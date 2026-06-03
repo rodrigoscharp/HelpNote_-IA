@@ -42,6 +42,163 @@
     --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+/* Dark Theme */
+[data-theme="dark"] {
+    --bg-main: #0f172a;
+    --bg-card: #1e293b;
+    --bg-hover: #334155;
+    --text-primary: #f1f5f9;
+    --text-secondary: #94a3b8;
+    --text-tertiary: #64748b;
+    --border-color: #334155;
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -1px rgba(0, 0, 0, 0.3);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -2px rgba(0, 0, 0, 0.3);
+    --primary-alpha: rgba(99, 102, 241, 0.15);
+    --secondary-alpha: rgba(16, 185, 129, 0.15);
+    --accent-alpha: rgba(245, 158, 11, 0.15);
+}
+
+/* ── Contraste: fundo claro → texto escuro ──────────────────────────────── */
+
+/* Stat cards ficam brancos, texto vira escuro */
+[data-theme="dark"] .stat-card {
+    background-color: white;
+}
+[data-theme="dark"] .stat-value {
+    color: #1e293b;
+}
+[data-theme="dark"] .stat-info h3 {
+    color: #475569;
+}
+
+/* Insight boxes ficam brancos, texto vira escuro */
+[data-theme="dark"] .insight-box {
+    background-color: white;
+}
+[data-theme="dark"] .insight-box h5 {
+    color: var(--primary-dark);
+}
+[data-theme="dark"] .insight-box.summary p {
+    color: #475569;
+}
+[data-theme="dark"] .insight-box.todos h5 {
+    color: var(--secondary);
+}
+[data-theme="dark"] .todo-list li {
+    color: #1e293b;
+}
+
+/* AI prompt container: troca white por dark */
+[data-theme="dark"] .ai-prompt {
+    background-color: var(--bg-card);
+}
+
+/* Inputs em foco: troca white por dark em vez de piscar */
+[data-theme="dark"] .search-bar:focus-within {
+    background-color: var(--bg-hover);
+}
+[data-theme="dark"] .ai-prompt input {
+    color: var(--text-primary);
+}
+[data-theme="dark"] .ai-prompt input:focus {
+    background-color: var(--bg-hover);
+    color: var(--text-primary);
+}
+[data-theme="dark"] .input-with-icon input:focus {
+    background-color: var(--bg-card);
+    color: var(--text-primary);
+}
+
+/* Inputs gerais no dark mode */
+[data-theme="dark"] input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+[data-theme="dark"] textarea,
+[data-theme="dark"] select {
+    color: var(--text-primary);
+    border-color: var(--border-color);
+}
+[data-theme="dark"] input::placeholder,
+[data-theme="dark"] textarea::placeholder {
+    color: var(--text-tertiary);
+}
+
+/* Correction panel e suggestion box ficam com fundo dark */
+[data-theme="dark"] .correction-panel,
+[data-theme="dark"] .suggestion-tooltip {
+    background-color: var(--bg-card);
+    color: var(--text-primary);
+    border-color: var(--border-color);
+}
+[data-theme="dark"] .diff-removed {
+    background: rgba(239, 68, 68, 0.2);
+    color: #fca5a5;
+}
+[data-theme="dark"] .diff-added {
+    background: rgba(16, 185, 129, 0.2);
+    color: #6ee7b7;
+}
+
+/* Note cards no histórico */
+[data-theme="dark"] .note-card {
+    background-color: var(--bg-card);
+}
+[data-theme="dark"] .note-card h4,
+[data-theme="dark"] .note-card .note-meta {
+    color: var(--text-primary);
+}
+
+/* History items */
+[data-theme="dark"] .history-item {
+    background-color: var(--bg-card);
+    border-color: var(--border-color);
+}
+[data-theme="dark"] .history-item:hover {
+    background-color: var(--bg-hover);
+}
+[data-theme="dark"] .h-info h4,
+[data-theme="dark"] .h-info span {
+    color: var(--text-primary);
+}
+
+/* Keyword tags */
+[data-theme="dark"] .keyword-tag {
+    background-color: var(--primary-alpha);
+    color: var(--primary-light);
+    border-color: var(--primary);
+}
+
+/* Delete confirm overlay content */
+[data-theme="dark"] .delete-confirm-box {
+    background-color: var(--bg-card);
+    color: var(--text-primary);
+}
+
+/* Usage stats row */
+[data-theme="dark"] .usage-stat {
+    color: var(--text-secondary);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────── */
+
+/* Theme toggle button */
+.theme-toggle-btn {
+    background: transparent;
+    font-size: 1.1rem;
+    color: var(--text-secondary);
+    transition: var(--transition);
+    padding: 6px;
+    border-radius: var(--border-radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.theme-toggle-btn:hover {
+    color: var(--primary);
+    background: var(--bg-hover);
+    transform: scale(1.1);
+}
+
 /* Base Styles */
 * {
     margin: 0;

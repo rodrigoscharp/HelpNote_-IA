@@ -14,14 +14,19 @@ import java.util.Optional;
 @Repository
 public interface NoteRepository extends JpaRepository<Note, Long> {
 
-    /** Returns notes owned by this user OR old records with no owner (migration compatibility). */
-    @Query("SELECT n FROM Note n WHERE n.userId = :userId OR n.userId IS NULL ORDER BY n.uploadDateTime DESC")
+    @Query("SELECT n FROM Note n WHERE n.userId = :userId ORDER BY n.uploadDateTime DESC")
     List<Note> findVisibleByUser(@Param("userId") Long userId);
 
-    @Query("SELECT n FROM Note n WHERE n.userId = :userId OR n.userId IS NULL ORDER BY n.uploadDateTime DESC")
+    @Query("SELECT n FROM Note n WHERE n.userId = :userId ORDER BY n.uploadDateTime DESC")
     Page<Note> findVisibleByUserPaged(@Param("userId") Long userId, Pageable pageable);
 
-    /** Finds a specific note: owned by user OR old record with no owner. */
-    @Query("SELECT n FROM Note n WHERE n.id = :id AND (n.userId = :userId OR n.userId IS NULL)")
+    @Query("SELECT n FROM Note n WHERE n.id = :id AND n.userId = :userId")
     Optional<Note> findByIdVisible(@Param("id") Long id, @Param("userId") Long userId);
+
+    @Query("SELECT n FROM Note n WHERE n.userId = :userId AND (" +
+           "LOWER(n.title) LIKE LOWER(CONCAT('%', :q, '%')) OR " +
+           "LOWER(n.content) LIKE LOWER(CONCAT('%', :q, '%')) OR " +
+           "LOWER(n.keywords) LIKE LOWER(CONCAT('%', :q, '%'))) " +
+           "ORDER BY n.uploadDateTime DESC")
+    List<Note> searchByUser(@Param("userId") Long userId, @Param("q") String q);
 }

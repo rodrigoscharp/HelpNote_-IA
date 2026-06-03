@@ -3,15 +3,11 @@ package com.example.HelpNote.service;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Arrays;
 import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.ai.openai.OpenAiChatModel;
-import org.springframework.ai.openai.OpenAiChatOptions;
-import org.springframework.ai.openai.api.OpenAiApi;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.HttpEntity;
@@ -24,6 +20,8 @@ import org.springframework.web.client.RestTemplate;
 
 import com.example.HelpNote.dto.AiSuggestionRequest;
 import com.example.HelpNote.dto.AiSuggestionResponse;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 @Service
 public class AiService {
@@ -33,22 +31,16 @@ public class AiService {
     private final ChatClient chatClient;
     private final String groqApiKey;
     private final RestTemplate restTemplate = new RestTemplate();
+    private final ObjectMapper objectMapper;
 
-    public AiService(ChatClient.Builder chatClientBuilder, @Value("${spring.ai.openai.api-key}") String apiKey) {
+    public AiService(ChatClient.Builder chatClientBuilder,
+                     @Value("${spring.ai.openai.api-key}") String apiKey,
+                     ObjectMapper objectMapper) {
         this.groqApiKey = apiKey.trim();
-        var openAiApi = new OpenAiApi("https://api.groq.com/openai", this.groqApiKey);
-
-        var chatOptions = OpenAiChatOptions.builder()
-                .model("llama-3.3-70b-versatile")
-                .build();
-
-        var chatModel = new OpenAiChatModel(openAiApi, chatOptions);
-        this.chatClient = ChatClient.builder(chatModel).build();
+        this.chatClient = chatClientBuilder.build();
+        this.objectMapper = objectMapper;
     }
 
-    /**
-     * Transcribes an audio file using Groq Whisper API.
-     */
     public String transcribeAudio(Path audioFilePath, String originalFilename) throws IOException {
         byte[] audioBytes = Files.readAllBytes(audioFilePath);
 
@@ -57,7 +49,6 @@ public class AiService {
         headers.setBearerAuth(groqApiKey);
 
         String filename = originalFilename != null ? originalFilename : "audio.mp3";
-
         ByteArrayResource audioResource = new ByteArrayResource(audioBytes) {
             @Override
             public String getFilename() {
@@ -104,10 +95,10 @@ public class AiService {
                 - Responda SOMENTE com JSON puro, sem markdown, sem ```json, sem explicações.
                 - Use aspas duplas para strings.
                 - A sugestão deve ser uma continuação natural, não uma repetição.
-                - Em 'correctedText', entregue o texto totalmente reescrito e melhorado, não apenas correções ortográficas. Se o texto for apenas uma ou duas palavras, expanda em uma frase útil.
+                - Em 'correctedText', entregue o texto totalmente reescrito e melhorado.
 
-                Formato exato (retorne apenas as chaves e os dados em uma linha JSON compacta):
-                {"keywords":["palavra1","palavra2"],"suggestedCompletion":"continuação aqui","correctedText":"texto reescrito e mais explicativo aqui","suggestedTitle":"Título da nota"}
+                Formato exato:
+                {"keywords":["palavra1","palavra2"],"suggestedCompletion":"continuação aqui","correctedText":"texto reescrito","suggestedTitle":"Título da nota"}
                 """;
 
         String userPrompt = String.format("Título: %s\nTexto atual: %s",
@@ -122,13 +113,19 @@ public class AiService {
                     .call()
                     .content();
 
-            log.debug("Resposta bruta da IA: {}", responseJson);
             return parseSuggestionResponse(responseJson, request.getText());
-
         } catch (Exception e) {
             log.error("Erro na chamada de IA para a nota '{}': {}", request.getTitle(), e.getMessage());
             return new AiSuggestionResponse(List.of(), "");
         }
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    private static class AiSuggestionJson {
+        public List<String> keywords;
+        public String suggestedCompletion;
+        public String correctedText;
+        public String suggestedTitle;
     }
 
     private AiSuggestionResponse parseSuggestionResponse(String json, String originalText) {
@@ -136,75 +133,21 @@ public class AiService {
             if (json == null || json.trim().isEmpty()) {
                 return new AiSuggestionResponse(List.of(), "");
             }
+            String cleanJson = json.replaceAll("(?s)```json\\s*", "").replaceAll("(?s)```\\s*", "").trim();
+            AiSuggestionJson parsed = objectMapper.readValue(cleanJson, AiSuggestionJson.class);
 
-            // Remove potential markdown code blocks
-            String cleanJson = json.replaceAll("```json\\s*", "")
-                                   .replaceAll("```\\s*", "")
-                                   .trim();
-
-            // Extract keywords
-            List<String> keywords = List.of();
-            if (cleanJson.contains("\"keywords\"")) {
-                int start = cleanJson.indexOf("[", cleanJson.indexOf("\"keywords\"")) + 1;
-                int end = cleanJson.indexOf("]", start);
-                if (start > 0 && end > start) {
-                    String[] kws = cleanJson.substring(start, end).replace("\"", "").split(",");
-                    keywords = Arrays.stream(kws)
-                            .map(String::trim)
-                            .filter(s -> !s.isEmpty())
-                            .toList();
-                }
-            }
-
-            // Extract suggestedCompletion
-            String completion = extractJsonString(cleanJson, "suggestedCompletion");
-
-            // Extract correctedText
-            String correctedText = extractJsonString(cleanJson, "correctedText");
-
-            String suggestedTitle = extractJsonString(cleanJson, "suggestedTitle");
-
-            AiSuggestionResponse response = new AiSuggestionResponse(keywords, completion);
-            response.setCorrectedText(correctedText.isEmpty() ? originalText : correctedText);
-            response.setSuggestedTitle(suggestedTitle.isEmpty() ? null : suggestedTitle);
+            AiSuggestionResponse response = new AiSuggestionResponse(
+                    parsed.keywords != null ? parsed.keywords : List.of(),
+                    parsed.suggestedCompletion != null ? parsed.suggestedCompletion : ""
+            );
+            response.setCorrectedText(parsed.correctedText != null && !parsed.correctedText.isBlank()
+                    ? parsed.correctedText : originalText);
+            response.setSuggestedTitle(parsed.suggestedTitle);
             return response;
-
         } catch (Exception e) {
             log.error("Erro ao parsear resposta da IA: {}", e.getMessage());
             return new AiSuggestionResponse(List.of(), "");
         }
-    }
-
-    /**
-     * Extracts a string value from a JSON key. Simple parser for flat JSON objects.
-     */
-    private String extractJsonString(String json, String key) {
-        String searchKey = "\"" + key + "\"";
-        int keyIndex = json.indexOf(searchKey);
-        if (keyIndex == -1) return "";
-
-        // Find the colon after the key
-        int colonIndex = json.indexOf(":", keyIndex + searchKey.length());
-        if (colonIndex == -1) return "";
-
-        // Find the opening quote of the value
-        int openQuote = json.indexOf("\"", colonIndex + 1);
-        if (openQuote == -1) return "";
-
-        // Find the closing quote (handle escaped quotes)
-        int closeQuote = openQuote + 1;
-        while (closeQuote < json.length()) {
-            if (json.charAt(closeQuote) == '"' && json.charAt(closeQuote - 1) != '\\') {
-                break;
-            }
-            closeQuote++;
-        }
-
-        if (closeQuote >= json.length()) return "";
-
-        return json.substring(openQuote + 1, closeQuote)
-                   .replace("\\\"", "\"")
-                   .replace("\\n", "\n");
     }
 
     public String analyzeTranscript(String transcript) {
@@ -276,7 +219,7 @@ public class AiService {
                 Você é um assistente especializado em criar Atas de Reunião profissionais.
                 Com base na transcrição fornecida, gere uma ata estruturada em HTML (sem as tags <html> ou <body>).
                 Use <strong> para títulos e listas <ul>/<li> para itens.
-                
+
                 Siga esta estrutura:
                 - Título da Reunião
                 - Data (pode usar a data atual ou extrair se houver)

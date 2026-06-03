@@ -21,8 +21,6 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.example.HelpNote.domain.Ata;
 import com.example.HelpNote.domain.Note;
-import com.example.HelpNote.dto.AiSuggestionRequest;
-import com.example.HelpNote.dto.AiSuggestionResponse;
 import com.example.HelpNote.repository.AtaRepository;
 import com.example.HelpNote.repository.NoteRepository;
 
@@ -37,11 +35,14 @@ public class NoteService {
     private final NoteRepository noteRepository;
     private final AtaRepository ataRepository;
     private final AiService aiService;
+    private final NoteEnrichmentService enrichmentService;
 
-    public NoteService(NoteRepository noteRepository, AtaRepository ataRepository, AiService aiService) {
+    public NoteService(NoteRepository noteRepository, AtaRepository ataRepository,
+                       AiService aiService, NoteEnrichmentService enrichmentService) {
         this.noteRepository = noteRepository;
         this.ataRepository = ataRepository;
         this.aiService = aiService;
+        this.enrichmentService = enrichmentService;
     }
 
     @Transactional
@@ -52,20 +53,9 @@ public class NoteService {
         note.setContent(content);
         note.setUploadDateTime(LocalDateTime.now());
         note.setUserId(userId);
-
-        try {
-            AiSuggestionRequest request = new AiSuggestionRequest();
-            request.setTitle(title);
-            request.setText(content);
-            AiSuggestionResponse suggestion = aiService.generateSuggestion(request);
-            if (suggestion != null && suggestion.getKeywords() != null) {
-                note.setKeywords(String.join(", ", suggestion.getKeywords()));
-            }
-        } catch (Exception e) {
-            log.warn("Erro ao processar IA para nota '{}': {}", title, e.getMessage());
-        }
-
-        return noteRepository.save(note);
+        Note saved = noteRepository.save(note);
+        enrichmentService.enrichTextNote(saved.getId(), title, content);
+        return saved;
     }
 
     @Transactional
@@ -83,25 +73,25 @@ public class NoteService {
         Path filePath = uploadPath.resolve(uniqueFileName);
         Files.copy(audioFile.getInputStream(), filePath);
 
-        Note note = new Note(title, filePath.toString(), LocalDateTime.now());
+        Note note = new Note(title, null, LocalDateTime.now());
         note.setUserId(userId);
 
-        // Transcribe audio via Groq Whisper
         try {
             log.info("Transcrevendo áudio: {}", uniqueFileName);
-            String transcription = aiService.transcribeAudio(filePath, audioFile.getOriginalFilename());
+            String transcription = aiService.transcribeAudio(filePath, originalFilename);
             note.setTranscription(transcription);
+            Note saved = noteRepository.save(note);
 
-            // Analyze the transcription
             if (transcription != null && !transcription.isBlank()) {
-                String analysis = aiService.analyzeTranscript(transcription);
-                note.setSummary(analysis);
+                enrichmentService.analyzeAudioNote(saved.getId(), transcription);
             }
+
+            tryDeleteFile(filePath);
+            return saved;
         } catch (Exception e) {
             log.warn("Erro ao transcrever áudio '{}': {}", uniqueFileName, e.getMessage());
+            return noteRepository.save(note);
         }
-
-        return noteRepository.save(note);
     }
 
     @Transactional
@@ -112,29 +102,9 @@ public class NoteService {
         ata.setTranscription(transcription);
         ata.setUploadDateTime(LocalDateTime.now());
         ata.setUserId(userId);
-
-        try {
-            String summary = aiService.generateMeetingMinutes(transcription, title);
-            ata.setSummary(summary);
-        } catch (Exception e) {
-            log.warn("Erro ao gerar resumo da ata '{}': {}", title, e.getMessage());
-            ata.setSummary("Resumo não disponível no momento.");
-        }
-
-        return ataRepository.save(ata);
-    }
-
-    public Optional<Ata> getAtaById(Long id, Long userId) {
-        return ataRepository.findByIdVisible(id, userId);
-    }
-
-    public List<Ata> getAllAtasByUser(Long userId) {
-        return ataRepository.findVisibleByUser(userId);
-    }
-
-    public Page<Ata> getAtasPaged(Long userId, int page, int size) {
-        return ataRepository.findVisibleByUserPaged(userId,
-                PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "uploadDateTime")));
+        Ata saved = ataRepository.save(ata);
+        enrichmentService.generateAtaMinutes(saved.getId(), title, transcription);
+        return saved;
     }
 
     @Transactional
@@ -142,18 +112,9 @@ public class NoteService {
         return noteRepository.findByIdVisible(id, userId).map(note -> {
             note.setTitle(title);
             note.setContent(content);
-            try {
-                AiSuggestionRequest request = new AiSuggestionRequest();
-                request.setTitle(title);
-                request.setText(content);
-                AiSuggestionResponse suggestion = aiService.generateSuggestion(request);
-                if (suggestion != null && suggestion.getKeywords() != null) {
-                    note.setKeywords(String.join(", ", suggestion.getKeywords()));
-                }
-            } catch (Exception e) {
-                log.warn("Erro ao regenerar keywords para nota id={}: {}", id, e.getMessage());
-            }
-            return noteRepository.save(note);
+            Note saved = noteRepository.save(note);
+            enrichmentService.enrichTextNote(saved.getId(), title, content);
+            return saved;
         });
     }
 
@@ -176,8 +137,33 @@ public class NoteService {
         return noteRepository.findVisibleByUser(userId);
     }
 
+    public List<Note> searchNotes(Long userId, String query) {
+        return noteRepository.searchByUser(userId, query);
+    }
+
     public Page<Note> getNotesPaged(Long userId, int page, int size) {
         return noteRepository.findVisibleByUserPaged(userId,
                 PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "uploadDateTime")));
+    }
+
+    public Optional<Ata> getAtaById(Long id, Long userId) {
+        return ataRepository.findByIdVisible(id, userId);
+    }
+
+    public List<Ata> getAllAtasByUser(Long userId) {
+        return ataRepository.findVisibleByUser(userId);
+    }
+
+    public Page<Ata> getAtasPaged(Long userId, int page, int size) {
+        return ataRepository.findVisibleByUserPaged(userId,
+                PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "uploadDateTime")));
+    }
+
+    private void tryDeleteFile(Path path) {
+        try {
+            Files.deleteIfExists(path);
+        } catch (IOException e) {
+            log.warn("Não foi possível excluir arquivo temporário: {}", path);
+        }
     }
 }

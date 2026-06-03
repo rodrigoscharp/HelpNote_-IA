@@ -18,9 +18,8 @@ public class UsageLimitService {
 
     private static final Logger log = LoggerFactory.getLogger(UsageLimitService.class);
 
-    private static final int FREE_DAILY_NOTE_LIMIT = 1;
-    private static final int FREE_DAILY_ATA_LIMIT = 1;
-    private static final int PREMIUM_UNLIMITED = -1; // -1 represents unlimited
+    private static final int FREE_DAILY_NOTE_LIMIT = 3;
+    private static final int FREE_DAILY_ATA_LIMIT = 2;
 
     private final UserRepository userRepository;
 
@@ -28,72 +27,51 @@ public class UsageLimitService {
         this.userRepository = userRepository;
     }
 
-    @Transactional
     private void resetDailyCountersIfNeeded(User user) {
         LocalDate today = LocalDate.now();
         if (user.getLastUsageResetDate() == null || !user.getLastUsageResetDate().equals(today)) {
             user.setDailyNoteCount(0);
             user.setDailyAtaCount(0);
             user.setLastUsageResetDate(today);
-            userRepository.save(user);
         }
-    }
-
-    /**
-     * Check if a user can create a new smart note.
-     */
-    public boolean canCreateNote(Long userId) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
-
-        if (user.getPlanType() == PlanType.PREMIUM) {
-            return true;
-        }
-
-        resetDailyCountersIfNeeded(user);
-        return user.getDailyNoteCount() < FREE_DAILY_NOTE_LIMIT;
-    }
-
-    /**
-     * Check if a user can create a new ata (meeting minutes).
-     */
-    public boolean canCreateAta(Long userId) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
-
-        if (user.getPlanType() == PlanType.PREMIUM) {
-            return true;
-        }
-
-        resetDailyCountersIfNeeded(user);
-        return user.getDailyAtaCount() < FREE_DAILY_ATA_LIMIT;
     }
 
     @Transactional
-    public void incrementNoteUsage(Long userId) {
-        User user = userRepository.findById(userId)
+    public boolean checkAndIncrementNote(Long userId) {
+        User user = userRepository.findByIdForUpdate(userId)
                 .orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
 
+        if (user.getPlanType() == PlanType.PREMIUM) return true;
+
         resetDailyCountersIfNeeded(user);
+
+        if (user.getDailyNoteCount() >= FREE_DAILY_NOTE_LIMIT) return false;
+
         user.setDailyNoteCount(user.getDailyNoteCount() + 1);
         userRepository.save(user);
+        return true;
     }
 
     @Transactional
-    public void incrementAtaUsage(Long userId) {
-        User user = userRepository.findById(userId)
+    public boolean checkAndIncrementAta(Long userId) {
+        User user = userRepository.findByIdForUpdate(userId)
                 .orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
 
+        if (user.getPlanType() == PlanType.PREMIUM) return true;
+
         resetDailyCountersIfNeeded(user);
+
+        if (user.getDailyAtaCount() >= FREE_DAILY_ATA_LIMIT) return false;
+
         user.setDailyAtaCount(user.getDailyAtaCount() + 1);
         userRepository.save(user);
+        return true;
     }
 
     @Transactional
     public void upgradeToPremium(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
-
         user.setPlanType(PlanType.PREMIUM);
         user.setPlanStartDate(LocalDateTime.now());
         userRepository.save(user);
@@ -103,28 +81,27 @@ public class UsageLimitService {
     public void downgradeToFree(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
-
         user.setPlanType(PlanType.FREE);
         user.setPlanStartDate(null);
         userRepository.save(user);
     }
 
-    /**
-     * Get the current usage status for a user.
-     */
+    @Transactional(readOnly = true)
     public UsageStatusResponse getUsageStatus(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
 
-        resetDailyCountersIfNeeded(user);
-
         boolean isPremium = user.getPlanType() == PlanType.PREMIUM;
+        LocalDate today = LocalDate.now();
+        int noteCount = (user.getLastUsageResetDate() != null && user.getLastUsageResetDate().equals(today))
+                ? user.getDailyNoteCount() : 0;
+        int ataCount = (user.getLastUsageResetDate() != null && user.getLastUsageResetDate().equals(today))
+                ? user.getDailyAtaCount() : 0;
 
-        int maxNotes = isPremium ? PREMIUM_UNLIMITED : FREE_DAILY_NOTE_LIMIT;
-        int maxAtas = isPremium ? PREMIUM_UNLIMITED : FREE_DAILY_ATA_LIMIT;
-
-        int remainingNotes = isPremium ? PREMIUM_UNLIMITED : Math.max(0, FREE_DAILY_NOTE_LIMIT - user.getDailyNoteCount());
-        int remainingAtas = isPremium ? PREMIUM_UNLIMITED : Math.max(0, FREE_DAILY_ATA_LIMIT - user.getDailyAtaCount());
+        int maxNotes = isPremium ? -1 : FREE_DAILY_NOTE_LIMIT;
+        int maxAtas = isPremium ? -1 : FREE_DAILY_ATA_LIMIT;
+        int remainingNotes = isPremium ? -1 : Math.max(0, FREE_DAILY_NOTE_LIMIT - noteCount);
+        int remainingAtas = isPremium ? -1 : Math.max(0, FREE_DAILY_ATA_LIMIT - ataCount);
 
         return new UsageStatusResponse(
                 user.getPlanType().name(),

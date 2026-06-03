@@ -1,20 +1,14 @@
 package com.example.HelpNote.controller;
 
-import java.util.HashMap;
-import java.util.Map;
-
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-
 import com.example.HelpNote.dto.UsageStatusResponse;
 import com.example.HelpNote.service.UsageLimitService;
-
+import com.example.HelpNote.util.AuthUtils;
 import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpSession;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.HashMap;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/plan")
@@ -28,10 +22,8 @@ public class PlanController {
 
     @GetMapping("/status")
     public ResponseEntity<?> getPlanStatus(HttpServletRequest request) {
-        Long userId = getUserIdFromSession(request);
-        if (userId == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Não autenticado");
-        }
+        Long userId = AuthUtils.getUserId(request);
+        if (userId == null) return AuthUtils.unauthorized();
 
         UsageStatusResponse status = usageLimitService.getUsageStatus(userId);
         return ResponseEntity.ok(status);
@@ -39,10 +31,8 @@ public class PlanController {
 
     @PostMapping("/upgrade")
     public ResponseEntity<?> upgradeToPremium(HttpServletRequest request) {
-        Long userId = getUserIdFromSession(request);
-        if (userId == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Não autenticado");
-        }
+        Long userId = AuthUtils.getUserId(request);
+        if (userId == null) return AuthUtils.unauthorized();
 
         usageLimitService.upgradeToPremium(userId);
 
@@ -54,10 +44,8 @@ public class PlanController {
 
     @PostMapping("/downgrade")
     public ResponseEntity<?> downgradeToFree(HttpServletRequest request) {
-        Long userId = getUserIdFromSession(request);
-        if (userId == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Não autenticado");
-        }
+        Long userId = AuthUtils.getUserId(request);
+        if (userId == null) return AuthUtils.unauthorized();
 
         usageLimitService.downgradeToFree(userId);
 
@@ -65,13 +53,5 @@ public class PlanController {
         response.put("message", "Plano alterado para Gratuito.");
         response.put("planType", "FREE");
         return ResponseEntity.ok(response);
-    }
-
-    private Long getUserIdFromSession(HttpServletRequest request) {
-        HttpSession session = request.getSession(false);
-        if (session != null && session.getAttribute("userId") != null) {
-            return (Long) session.getAttribute("userId");
-        }
-        return null;
     }
 }

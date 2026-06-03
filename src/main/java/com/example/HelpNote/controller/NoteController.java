@@ -4,8 +4,8 @@ import com.example.HelpNote.domain.Note;
 import com.example.HelpNote.service.NoteService;
 import com.example.HelpNote.service.PdfService;
 import com.example.HelpNote.service.UsageLimitService;
+import com.example.HelpNote.util.AuthUtils;
 import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpSession;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -38,8 +38,8 @@ public class NoteController {
             @RequestParam("audioFile") MultipartFile audioFile,
             @RequestParam("title") String title,
             HttpServletRequest request) {
-        Long userId = getUserId(request);
-        if (userId == null) return unauthorized();
+        Long userId = AuthUtils.getUserId(request);
+        if (userId == null) return AuthUtils.unauthorized();
         try {
             Note savedNote = noteService.saveAudioFile(audioFile, title, userId);
             return new ResponseEntity<>(savedNote, HttpStatus.CREATED);
@@ -54,18 +54,17 @@ public class NoteController {
             @RequestParam("title") String title,
             @RequestParam("content") String content,
             HttpServletRequest request) {
-        Long userId = getUserId(request);
-        if (userId == null) return unauthorized();
+        Long userId = AuthUtils.getUserId(request);
+        if (userId == null) return AuthUtils.unauthorized();
 
-        if (!usageLimitService.canCreateNote(userId)) {
+        if (!usageLimitService.checkAndIncrementNote(userId)) {
             Map<String, Object> error = new HashMap<>();
-            error.put("error", "Limite diário atingido! No plano gratuito você pode criar 1 anotação inteligente por dia.");
+            error.put("error", "Limite diário atingido! No plano gratuito você pode criar 3 anotações por dia.");
             error.put("upgradeRequired", true);
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
         }
 
         Note savedNote = noteService.saveTextNote(title, content, userId);
-        usageLimitService.incrementNoteUsage(userId);
         return new ResponseEntity<>(savedNote, HttpStatus.CREATED);
     }
 
@@ -75,8 +74,8 @@ public class NoteController {
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(defaultValue = "false") boolean paged,
             HttpServletRequest request) {
-        Long userId = getUserId(request);
-        if (userId == null) return unauthorized();
+        Long userId = AuthUtils.getUserId(request);
+        if (userId == null) return AuthUtils.unauthorized();
 
         if (paged) {
             Page<Note> notes = noteService.getNotesPaged(userId, page, size);
@@ -86,9 +85,21 @@ public class NoteController {
         return ResponseEntity.ok(notes);
     }
 
+    @GetMapping("/search")
+    public ResponseEntity<?> searchNotes(@RequestParam String q, HttpServletRequest request) {
+        Long userId = AuthUtils.getUserId(request);
+        if (userId == null) return AuthUtils.unauthorized();
+
+        if (q == null || q.trim().isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Parâmetro de busca não pode ser vazio."));
+        }
+        List<Note> notes = noteService.searchNotes(userId, q.trim());
+        return ResponseEntity.ok(notes);
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<Note> getNote(@PathVariable Long id, HttpServletRequest request) {
-        Long userId = getUserId(request);
+        Long userId = AuthUtils.getUserId(request);
         if (userId == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         return noteService.getNoteById(id, userId)
                 .map(note -> new ResponseEntity<>(note, HttpStatus.OK))
@@ -101,17 +112,17 @@ public class NoteController {
             @RequestParam("title") String title,
             @RequestParam("content") String content,
             HttpServletRequest request) {
-        Long userId = getUserId(request);
-        if (userId == null) return unauthorized();
+        Long userId = AuthUtils.getUserId(request);
+        if (userId == null) return AuthUtils.unauthorized();
         return noteService.updateNote(id, title, content, userId)
-                .<ResponseEntity<?>>map(note -> ResponseEntity.ok(note))
+                .<ResponseEntity<?>>map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteNote(@PathVariable Long id, HttpServletRequest request) {
-        Long userId = getUserId(request);
-        if (userId == null) return unauthorized();
+        Long userId = AuthUtils.getUserId(request);
+        if (userId == null) return AuthUtils.unauthorized();
         boolean deleted = noteService.deleteNote(id, userId);
         if (deleted) return ResponseEntity.ok(Map.of("message", "Nota excluída com sucesso."));
         return ResponseEntity.notFound().build();
@@ -119,7 +130,7 @@ public class NoteController {
 
     @GetMapping("/{id}/pdf")
     public ResponseEntity<byte[]> downloadPdf(@PathVariable Long id, HttpServletRequest request) {
-        Long userId = getUserId(request);
+        Long userId = AuthUtils.getUserId(request);
         if (userId == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
 
         return noteService.getNoteById(id, userId).map(note -> {
@@ -139,17 +150,5 @@ public class NoteController {
                 return new ResponseEntity<byte[]>(HttpStatus.INTERNAL_SERVER_ERROR);
             }
         }).orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));
-    }
-
-    private Long getUserId(HttpServletRequest request) {
-        HttpSession session = request.getSession(false);
-        if (session != null && session.getAttribute("userId") != null) {
-            return (Long) session.getAttribute("userId");
-        }
-        return null;
-    }
-
-    private ResponseEntity<?> unauthorized() {
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Não autenticado."));
     }
 }

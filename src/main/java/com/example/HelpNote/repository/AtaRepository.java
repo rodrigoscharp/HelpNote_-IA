@@ -14,14 +14,12 @@ import java.util.Optional;
 @Repository
 public interface AtaRepository extends JpaRepository<Ata, Long> {
 
-    /** Returns atas owned by this user OR old records with no owner (migration compatibility). */
-    @Query("SELECT a FROM Ata a WHERE a.userId = :userId OR a.userId IS NULL ORDER BY a.uploadDateTime DESC")
+    @Query("SELECT a FROM Ata a WHERE a.userId = :userId ORDER BY a.uploadDateTime DESC")
     List<Ata> findVisibleByUser(@Param("userId") Long userId);
 
-    @Query("SELECT a FROM Ata a WHERE a.userId = :userId OR a.userId IS NULL ORDER BY a.uploadDateTime DESC")
+    @Query("SELECT a FROM Ata a WHERE a.userId = :userId ORDER BY a.uploadDateTime DESC")
     Page<Ata> findVisibleByUserPaged(@Param("userId") Long userId, Pageable pageable);
 
-    /** Finds a specific ata: owned by user OR old record with no owner. */
-    @Query("SELECT a FROM Ata a WHERE a.id = :id AND (a.userId = :userId OR a.userId IS NULL)")
+    @Query("SELECT a FROM Ata a WHERE a.id = :id AND a.userId = :userId")
     Optional<Ata> findByIdVisible(@Param("id") Long id, @Param("userId") Long userId);
 }

@@ -7,13 +7,14 @@ import com.example.HelpNote.dto.RegisterRequest;
 import com.example.HelpNote.dto.UpdateProfileRequest;
 import com.example.HelpNote.dto.GoogleLoginRequest;
 import com.example.HelpNote.repository.UserRepository;
+import com.example.HelpNote.security.JwtService;
 import com.example.HelpNote.service.UserService;
+import com.example.HelpNote.util.AuthUtils;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
 import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.gson.GsonFactory;
 import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,28 +36,27 @@ public class AuthController {
 
     private final UserService userService;
     private final UserRepository userRepository;
+    private final JwtService jwtService;
 
     @Value("${google.client.id}")
     private String googleClientId;
 
-    public AuthController(UserService userService, UserRepository userRepository) {
+    public AuthController(UserService userService, UserRepository userRepository, JwtService jwtService) {
         this.userService = userService;
         this.userRepository = userRepository;
+        this.jwtService = jwtService;
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@Valid @RequestBody LoginRequest loginRequest, HttpServletRequest request) {
+    public ResponseEntity<?> login(@Valid @RequestBody LoginRequest loginRequest) {
         Optional<User> authenticatedUser = userService.authenticate(loginRequest.getEmail(), loginRequest.getPassword());
 
         if (authenticatedUser.isPresent()) {
             User user = authenticatedUser.get();
-            HttpSession session = request.getSession(true);
-            session.setAttribute("userId", user.getId());
-            session.setAttribute("userName", user.getName());
-            session.setAttribute("userEmail", user.getEmail());
+            String token = jwtService.generateToken(user.getId());
 
             Map<String, Object> response = new HashMap<>();
-            response.put("message", "Login realizado com sucesso.");
+            response.put("token", token);
             response.put("userId", user.getId());
             response.put("userName", user.getName());
             response.put("planType", user.getPlanType().name());
@@ -72,12 +72,13 @@ public class AuthController {
                 registerRequest.getEmail(),
                 registerRequest.getPassword()
         );
+        String token = jwtService.generateToken(newUser.getId());
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(Map.of("message", "Usuário registrado com sucesso.", "userId", newUser.getId()));
+                .body(Map.of("token", token, "userId", newUser.getId(), "message", "Usuário registrado com sucesso."));
     }
 
     @PostMapping("/google")
-    public ResponseEntity<?> googleLogin(@RequestBody GoogleLoginRequest request, HttpServletRequest httpRequest) {
+    public ResponseEntity<?> googleLogin(@RequestBody GoogleLoginRequest request) {
         try {
             GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(new NetHttpTransport(), new GsonFactory())
                     .setAudience(Collections.singletonList(googleClientId))
@@ -90,14 +91,10 @@ public class AuthController {
 
             GoogleIdToken.Payload payload = idToken.getPayload();
             User user = userService.processGoogleLogin(payload.getEmail(), (String) payload.get("name"));
-
-            HttpSession session = httpRequest.getSession(true);
-            session.setAttribute("userId", user.getId());
-            session.setAttribute("userName", user.getName());
-            session.setAttribute("userEmail", user.getEmail());
+            String token = jwtService.generateToken(user.getId());
 
             Map<String, Object> response = new HashMap<>();
-            response.put("message", "Login realizado com sucesso.");
+            response.put("token", token);
             response.put("userId", user.getId());
             response.put("userName", user.getName());
             response.put("planType", user.getPlanType().name());
@@ -111,66 +108,41 @@ public class AuthController {
 
     @GetMapping("/me")
     public ResponseEntity<?> getCurrentUser(HttpServletRequest request) {
-        HttpSession session = request.getSession(false);
-        if (session == null || session.getAttribute("userId") == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Não autenticado."));
-        }
+        Long userId = AuthUtils.getUserId(request);
+        if (userId == null) return AuthUtils.unauthorized();
 
-        Long userId = (Long) session.getAttribute("userId");
-        Map<String, Object> response = new HashMap<>();
-        response.put("userId", userId);
-        response.put("userName", session.getAttribute("userName"));
-        response.put("userEmail", session.getAttribute("userEmail"));
-
-        userRepository.findById(userId).ifPresent(user ->
-                response.put("planType", user.getPlanType().name())
-        );
-        return ResponseEntity.ok(response);
+        return userRepository.findById(userId).map(user -> {
+            Map<String, Object> response = new HashMap<>();
+            response.put("userId", user.getId());
+            response.put("userName", user.getName());
+            response.put("userEmail", user.getEmail());
+            response.put("planType", user.getPlanType().name());
+            return ResponseEntity.ok(response);
+        }).orElse(ResponseEntity.status(HttpStatus.NOT_FOUND).build());
     }
 
     @PatchMapping("/profile")
-    public ResponseEntity<?> updateProfile(
-            @Valid @RequestBody UpdateProfileRequest profileRequest,
-            HttpServletRequest request) {
-        Long userId = getUserId(request);
-        if (userId == null) return unauthorized();
+    public ResponseEntity<?> updateProfile(@Valid @RequestBody UpdateProfileRequest profileRequest,
+                                           HttpServletRequest request) {
+        Long userId = AuthUtils.getUserId(request);
+        if (userId == null) return AuthUtils.unauthorized();
 
         User updated = userService.updateProfile(userId, profileRequest.getName());
-
-        // Update session name
-        HttpSession session = request.getSession(false);
-        if (session != null) session.setAttribute("userName", updated.getName());
-
         return ResponseEntity.ok(Map.of("message", "Perfil atualizado com sucesso.", "name", updated.getName()));
     }
 
     @PatchMapping("/password")
-    public ResponseEntity<?> changePassword(
-            @Valid @RequestBody ChangePasswordRequest passwordRequest,
-            HttpServletRequest request) {
-        Long userId = getUserId(request);
-        if (userId == null) return unauthorized();
+    public ResponseEntity<?> changePassword(@Valid @RequestBody ChangePasswordRequest passwordRequest,
+                                            HttpServletRequest request) {
+        Long userId = AuthUtils.getUserId(request);
+        if (userId == null) return AuthUtils.unauthorized();
 
         userService.changePassword(userId, passwordRequest.getCurrentPassword(), passwordRequest.getNewPassword());
         return ResponseEntity.ok(Map.of("message", "Senha alterada com sucesso."));
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<?> logout(HttpServletRequest request) {
-        HttpSession session = request.getSession(false);
-        if (session != null) session.invalidate();
+    public ResponseEntity<?> logout() {
         return ResponseEntity.ok(Map.of("message", "Logout realizado com sucesso."));
-    }
-
-    private Long getUserId(HttpServletRequest request) {
-        HttpSession session = request.getSession(false);
-        if (session != null && session.getAttribute("userId") != null) {
-            return (Long) session.getAttribute("userId");
-        }
-        return null;
-    }
-
-    private ResponseEntity<?> unauthorized() {
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Não autenticado."));
     }
 }

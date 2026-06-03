@@ -21,7 +21,7 @@ public class PdfService {
         String keywordsHtml = "";
         if (keywords != null && !keywords.isBlank()) {
             String tags = Arrays.stream(keywords.split(","))
-                    .map(k -> "<span class='tag'>" + k.trim() + "</span>")
+                    .map(k -> "<span class='tag'>" + escapeHtml(k.trim()) + "</span>")
                     .collect(Collectors.joining(" "));
             keywordsHtml = "<div class='keywords'>" + tags + "</div>";
         }
@@ -38,11 +38,11 @@ public class PdfService {
                 ".footer{margin-top:50px;font-size:12px;color:#999;text-align:center;border-top:1px solid #eee;padding-top:10px;}" +
                 "</style></head><body>" +
                 "<div class='header'><h1>HelpNote IA — Anotação Inteligente</h1>" +
-                "<div class='meta'>Título: " + (title != null ? title : "Sem título") + "</div>" +
-                "<div class='meta'>Data: " + date + "</div>" +
+                "<div class='meta'>Título: " + escapeHtml(title != null ? title : "Sem título") + "</div>" +
+                "<div class='meta'>Data: " + escapeHtml(date) + "</div>" +
                 keywordsHtml + "</div>" +
                 "<div class='section'><div class='section-title'>Conteúdo</div>" +
-                "<div class='content'>" + (content != null ? content.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;") : "") + "</div></div>" +
+                "<div class='content'>" + escapeHtml(content != null ? content : "") + "</div></div>" +
                 "<div class='footer'>Gerado automaticamente pelo HelpNote IA</div>" +
                 "</body></html>";
     }
@@ -65,19 +65,28 @@ public class PdfService {
                 "<body>" +
                 "<div class='header'>" +
                 "<h1>HelpNote IA - Ata de Reunião</h1>" +
-                "<div class='meta'>Título: " + title + "</div>" +
-                "<div class='meta'>Data: " + date + "</div>" +
+                "<div class='meta'>Título: " + escapeHtml(title) + "</div>" +
+                "<div class='meta'>Data: " + escapeHtml(date) + "</div>" +
                 "</div>" +
                 "<div class='section'>" +
                 "<div class='section-title'>Resumo da Reunião</div>" +
-                "<div class='content'>" + (summary != null ? summary : "Resumo automático sendo processado...") + "</div>" +
+                "<div class='content'>" + (summary != null ? summary : "Resumo sendo processado...") + "</div>" +
                 "</div>" +
                 "<div class='section'>" +
                 "<div class='section-title'>Transcrição Completa</div>" +
-                "<div class='content'>" + transcription.replace("\n", "<br>") + "</div>" +
+                "<div class='content'>" + escapeHtml(transcription).replace("\n", "<br>") + "</div>" +
                 "</div>" +
                 "<div class='footer'>Gerado automaticamente pelo HelpNote IA</div>" +
                 "</body>" +
                 "</html>";
+    }
+
+    private String escapeHtml(String text) {
+        if (text == null) return "";
+        return text.replace("&", "&amp;")
+                   .replace("<", "&lt;")
+                   .replace(">", "&gt;")
+                   .replace("\"", "&quot;")
+                   .replace("'", "&#39;");
     }
 }

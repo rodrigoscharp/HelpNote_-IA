@@ -2,6 +2,41 @@
  * Frontend logic to handle UI mock interactions.
  */
 
+// ── Theme ────────────────────────────────────────────────────────────────────
+(function initTheme() {
+    const saved = localStorage.getItem('helpnote_theme') || 'light';
+    document.documentElement.setAttribute('data-theme', saved);
+})();
+
+function applyThemeIcon(theme) {
+    document.querySelectorAll('#themeToggleBtn i').forEach(icon => {
+        icon.className = theme === 'dark' ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
+    });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    applyThemeIcon(document.documentElement.getAttribute('data-theme') || 'light');
+    const themeBtn = document.getElementById('themeToggleBtn');
+    if (themeBtn) {
+        themeBtn.addEventListener('click', () => {
+            const current = document.documentElement.getAttribute('data-theme') || 'light';
+            const next = current === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', next);
+            localStorage.setItem('helpnote_theme', next);
+            applyThemeIcon(next);
+        });
+    }
+});
+// ─────────────────────────────────────────────────────────────────────────────
+
+function authFetch(url, options = {}) {
+    const token = localStorage.getItem('helpnote_token');
+    if (token) {
+        options.headers = { ...options.headers, 'Authorization': `Bearer ${token}` };
+    }
+    return fetch(url, options);
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     const sidebar = document.querySelector('.sidebar');
     const menuToggle = document.getElementById('menuToggle');
@@ -37,7 +72,7 @@ function initializeMainApp() {
     const userProfileName = document.getElementById('userProfileName');
 
     // Check if user is logged in
-    fetch('/api/auth/me')
+    authFetch('/api/auth/me')
         .then(response => {
             if (!response.ok) {
                 // If not authenticated, force redirect to login
@@ -89,7 +124,8 @@ function initializeMainApp() {
     if (logoutBtn) {
         logoutBtn.addEventListener('click', async () => {
             try {
-                await fetch('/api/auth/logout', { method: 'POST' });
+                await authFetch('/api/auth/logout', { method: 'POST' });
+                localStorage.removeItem('helpnote_token');
                 window.location.href = 'login.html';
             } catch (err) {
                 console.error("Erro ao fazer logout", err);
@@ -216,7 +252,7 @@ function initializeMainApp() {
         if (aiBtn) aiBtn.setAttribute('disabled', true);
 
         try {
-            const response = await fetch('/api/ai/analyze', {
+            const response = await authFetch('/api/ai/analyze', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ text: currentTranscript, title: currentNoteTitle })
@@ -288,7 +324,7 @@ function initializeMainApp() {
             chatMessages.scrollTop = chatMessages.scrollHeight;
 
             try {
-                const response = await fetch('/api/ai/chat', {
+                const response = await authFetch('/api/ai/chat', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ text: currentTranscript, question })
@@ -329,7 +365,7 @@ function initializeMainApp() {
             generateAtaBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Processando...';
 
             try {
-                const response = await fetch('/api/ai/generate-ata', {
+                const response = await authFetch('/api/ai/generate-ata', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ text: transcriptText, title: noteTitle })
@@ -532,7 +568,7 @@ function initializeMainApp() {
         params.append('transcription', transcription);
 
         try {
-            const response = await fetch('/api/atas', {
+            const response = await authFetch('/api/atas', {
                 method: 'POST',
                 body: params
             });
@@ -566,7 +602,7 @@ function initializeMainApp() {
         if (!recentRecordingsList) return;
 
         try {
-            const response = await fetch('/api/atas');
+            const response = await authFetch('/api/atas');
             if (response.status === 401) { window.location.href = 'login.html'; return; }
             if (response.ok) {
                 const atas = await response.json();
@@ -604,10 +640,10 @@ function initializeMainApp() {
 
         try {
             // First try Atas endpoint
-            let response = await fetch(`/api/atas/${noteId}`);
+            let response = await authFetch(`/api/atas/${noteId}`);
             if (!response.ok) {
                 // Try regular Notes as fallback (unlikely for Atas, but kept for compatibility)
-                response = await fetch(`/api/notes/${noteId}`);
+                response = await authFetch(`/api/notes/${noteId}`);
             }
             
             if (response.ok) {
@@ -770,8 +806,8 @@ function initializeMainApp() {
     async function fetchHistory() {
         try {
             const [notesRes, atasRes] = await Promise.all([
-                fetch('/api/notes'),
-                fetch('/api/atas')
+                authFetch('/api/notes'),
+                authFetch('/api/atas')
             ]);
 
             if (notesRes.status === 401 || atasRes.status === 401) {
@@ -852,7 +888,7 @@ function initializeMainApp() {
             div.addEventListener('click', () => {
                 if (window.location.pathname.includes('smart-notepad.html')) {
                     if (item.type === 'note') {
-                        fetch(`/api/notes/${item.id}`)
+                        authFetch(`/api/notes/${item.id}`)
                             .then(res => res.json())
                             .then(note => {
                                 if (typeof window.loadNoteForEdit === 'function') {
@@ -951,7 +987,7 @@ function initializeMainApp() {
             if (settingsSuccessMsg) settingsSuccessMsg.classList.add('hidden');
             if (settingsErrorMsg) settingsErrorMsg.classList.add('hidden');
 
-            fetch('/api/auth/me').then(r => r.json()).then(user => {
+            authFetch('/api/auth/me').then(r => r.json()).then(user => {
                 if (userNameInput) userNameInput.value = user.userName || '';
                 if (userEmailInput) userEmailInput.value = user.userEmail || '';
 
@@ -1017,7 +1053,7 @@ function initializeMainApp() {
 
             try {
                 if (newName) {
-                    const res = await fetch('/api/auth/profile', {
+                    const res = await authFetch('/api/auth/profile', {
                         method: 'PATCH',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ name: newName })
@@ -1046,7 +1082,7 @@ function initializeMainApp() {
                 }
 
                 if (currentPwd && newPwd) {
-                    const res = await fetch('/api/auth/password', {
+                    const res = await authFetch('/api/auth/password', {
                         method: 'PATCH',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ currentPassword: currentPwd, newPassword: newPwd })
@@ -1096,7 +1132,7 @@ function updatePlanBadge(planType) {
 
 async function loadUsageStatus() {
     try {
-        const response = await fetch('/api/plan/status');
+        const response = await authFetch('/api/plan/status');
         if (!response.ok) return;
         const status = await response.json();
 

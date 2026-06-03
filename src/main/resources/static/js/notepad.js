@@ -1,3 +1,11 @@
+function authFetch(url, options = {}) {
+    const token = localStorage.getItem('helpnote_token');
+    if (token) {
+        options.headers = { ...options.headers, 'Authorization': `Bearer ${token}` };
+    }
+    return fetch(url, options);
+}
+
 /**
  * Smart Notepad — full logic
  * Features: AI suggestions, auto-save, edit/delete notes,
@@ -25,7 +33,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     /* ─── Auth check ─────────────────────────────────────────── */
-    fetch('/api/auth/me')
+    authFetch('/api/auth/me')
         .then(r => { if (!r.ok) { window.location.href = 'login.html'; throw new Error(); } return r.json(); })
         .then(user => {
             const nameEl = document.getElementById('userProfileName');
@@ -43,7 +51,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     /* ─── Logout ─────────────────────────────────────────────── */
     document.getElementById('logoutBtn')?.addEventListener('click', async () => {
-        await fetch('/api/auth/logout', { method: 'POST' }).catch(() => {});
+        await authFetch('/api/auth/logout', { method: 'POST' }).catch(() => {});
+        localStorage.removeItem('helpnote_token');
         window.location.href = 'login.html';
     });
 
@@ -243,7 +252,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const method = isEdit ? 'PUT' : 'POST';
 
         try {
-            const response = await fetch(url, {
+            const response = await authFetch(url, {
                 method,
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                 body: params.toString()
@@ -377,7 +386,7 @@ document.addEventListener('DOMContentLoaded', () => {
     /* ─── History ────────────────────────────────────────────── */
     async function loadHistory() {
         try {
-            const res = await fetch('/api/notes');
+            const res = await authFetch('/api/notes');
             if (res.status === 401) { window.location.href = 'login.html'; return; }
             if (res.ok) {
                 allNotes = await res.json();
@@ -472,7 +481,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('confirmDeleteBtn')?.addEventListener('click', async () => {
         if (!noteToDeleteId) return;
         try {
-            const res = await fetch(`/api/notes/${noteToDeleteId}`, { method: 'DELETE' });
+            const res = await authFetch(`/api/notes/${noteToDeleteId}`, { method: 'DELETE' });
             if (res.ok) {
                 if (currentNoteId === noteToDeleteId) {
                     clearEditMode();
@@ -521,7 +530,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             const title = noteTitle?.value || '';
-            const res   = await fetch('/api/ai/suggest', {
+            const res   = await authFetch('/api/ai/suggest', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ text: paragraphText, title })

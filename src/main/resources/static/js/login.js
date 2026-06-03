@@ -1,3 +1,8 @@
+(function() {
+    const saved = localStorage.getItem('helpnote_theme') || 'light';
+    document.documentElement.setAttribute('data-theme', saved);
+})();
+
 document.addEventListener('DOMContentLoaded', () => {
     // Password visibility toggle
     const toggleBtn = document.querySelector('.toggle-password');
@@ -69,6 +74,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
 
                 if (response.ok) {
+                    const data = await response.json();
+                    localStorage.setItem('helpnote_token', data.token);
                     window.location.href = 'index.html';
                 } else {
                     let errorMsg = "E-mail ou senha incorretos.";
@@ -144,7 +151,8 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             if (res.ok) {
-                // Success! Redirect to dashboard
+                const data = await res.json();
+                localStorage.setItem('helpnote_token', data.token);
                 window.location.href = 'index.html';
             } else {
                 const errorMsg = await res.text();
